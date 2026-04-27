@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html data-theme="light" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Settings</title>
+    <script>
+        try {
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed-init');
+            }
+        } catch (error) {}
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Using Google Fonts for a modern, sleek typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Using Phosphor Icons for a clean, modern icon set -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="jquery.js"></script>
+    <script src="jquery-ui.js"></script>
+    <script>
+        $( function() {
+            $( "#accordion" ).accordion();
+
+        }  );
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="top-nav glass-panel">
+            <div class="nav-links">
+                <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+                <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i>
+                    Commissions</a>
+                <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
+                <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Profile</a>
+                <a href="settings.html" class="nav-item active"><i class="ph ph-gear"></i> Settings</a>
+            </div>
+
+            <div class="profile-section">
+                <!-- Notifications/Alerts Bell -->
+                <button class="icon-btn" aria-label="Notifications">
+                    <i class="ph ph-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <a class="profile-avatar" href="profile.html" aria-label="Open artist profile">
+                    <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+                </a>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <!-- Left Vertical Sidebar -->
+            <aside class="sidebar glass-panel" id="sidebar">
+                <button class="toggle-btn" id="toggle-sidebar" aria-label="Toggle Navigation">
+                    <i class="ph ph-caret-left"></i>
+                </button>
+                <nav class="side-nav">
+                    <div class="nav-group-title">Commissions & Tutorials</div>
+                    <a href="commissions.html" class="side-nav-item active has-submenu"><i class="ph ph-monitor"></i> <span
+                            class="nav-text">Digital Art</span></a>
+                    <div class="submenu expanded">
+                        <div class="submenu-inner">
+                            <a href="tutorial.html" class="submenu-item">Tutorials</a>
+                            <a href="commissions.html" class="submenu-item"
+                                style="color: var(--accent-color);">Comm.</a>
+                        </div>
+                    </div>
+                    <a href="pottery_page.html" class="side-nav-item"><i class="ph ph-coffee"></i> <span
+                            class="nav-text">Pottery</span></a>
+                    <a href="jewlery_page.html" class="side-nav-item"><i class="ph ph-diamond"></i> <span
+                            class="nav-text">Jewelry</span></a>
+                    <a href="music_page_frontend.html" class="side-nav-item"><i class="ph ph-music-notes"></i> <span
+                            class="nav-text">Music</span></a>
+                    <a href="crochet_page.html" class="side-nav-item"><i class="ph ph-yarn"></i> <span
+                            class="nav-text">Crochet</span></a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- SETTINGS PAGE -->
+                <div class="content-card glass-panel" id="commission-page">
+                    <h1 class="page-title">Settings</h1>
+                    <!--ACCOUNT INFORMATION-->
+                    
+                    <main class="settings-content">
+                        <section class="account-settings">
+                            <h2>Account Information</h2>
+                            <h3>
+                            <form action="#" method="POST">
+                                <div class="setting-item">
+                                    <label for="username">Username:</label>
+                                    <input type="text" id="username" name="username" value="johndoe" required>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="email">Email Address:</label>
+                                    <input type="email" id="email" name="email" value="john@example.com" required>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="phone">Phone Number:</label>
+                                    <input type="text" id="phone" name="phone" value="1234567890" required>
+                                </div>
+                            </h3>
+                                <div style="margin-bottom:20px;">
+                                    <button class="btn btn-primary" id="account-info" type="button"> Save Account Info</button>
+                                </div>
+                            </form>
+                        </section>
+
+                        
+                    <!--NOTIFICATION SETTINGS-->
+                    <section class="notification-settings">
+                        <h2>Notifications</h2>
+                        <h3>
+                        <form action="#" method="POST">
+                            <div class="setting-item">
+                                <input type="checkbox" id="email-notify" name="email-notify">
+                                <label for="email-notify">Receive email notifications</label>
+                            </div>
+                            <div class="setting-item">
+                                <input type="checkbox" id="push-notify" name="push-notify">
+                                <label for="push-notify">Enable push notifications</label>
+                            </div>
+                            <div class="setting-item">
+                                <input type="checkbox" id="art-updates" name="art-updates">
+                                <label for="art-updates">Receive updates on new art and artists</label>
+                            </div>
+                            <div class="setting-item">
+                                <input type="checkbox" id="event-notify" name="event-notify">
+                                <label for="event-notify">Notify me about upcoming art events</label>
+                            </div>
+                            <button class="btn btn-primary" id="noti-settings" type="button"> Save Notification Settings</button>
+                        </form>
+                        </h3>
+                    </section>
+
+                    <!--THEME SETTINGS-->
+                    <section class="theme-settings">
+                        <h2>Appearance</h2>
+                        <h3>
+
+                            <div class="setting-item">
+                                <button 
+                                    class="btn btn-primary"
+                                    type="button"
+                                    data-theme-toggle
+                                    aria-label="Change to light theme">
+                                Change to light mode </button>
+                            </div>
+                        </h3>
+                    </section>
+
+                    <!--CONTENT PREFERENCES-->
+                    <section class="content-preferences">
+                        <h2>Content Preferences</h2>
+                        <h3> Select the types of content you want to see:</h3>
+                        <div class="btn btn" style="display: flex; flex-direction:column">
+                            <label><input type="checkbox" name="content-pref" value="digital-art"> Digital Art</label>
+                            <label><input type="checkbox" name="content-pref" value="pottery"> Pottery</label>
+                            <label><input type="checkbox" name="content-pref" value="jewelry"> Jewelry</label>
+                            <label><input type="checkbox" name="content-pref" value="music"> Music</label>
+                            <label><input type="checkbox" name="content-pref" value="crochet"> Crochet</label>
+                        </div>
+
+                        <button class="btn btn-primary" id="content-prefs" type="button"> Save Content Preferences</button>
+                        </form>
+                        </h3>
+
+
+
+
+
+                   
+
+                    <div class="commission-grid" id="commission-grid"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="theme.js"></script>
+    <script src="script.js"></script>
+    <script src="commissions.js"></script>
+</body>
+
+</html>

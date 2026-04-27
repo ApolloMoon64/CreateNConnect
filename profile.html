@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Makes the page scale correctly on phones and tablets -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Title shown in the browser tab -->
+  <title>Artist Profile</title>
+  <script>
+    try {
+      if (localStorage.getItem('sidebar-collapsed') === 'true') {
+        document.documentElement.classList.add('sidebar-collapsed-init');
+      }
+    } catch (error) {}
+  </script>
+
+  <!-- Main stylesheet for the profile page -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Google font loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Icon library used for the nav and social icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+  <!-- Main page wrapper -->
+  <div class="app-container">
+
+    <!-- Top navigation bar -->
+    <header class="top-nav glass-panel">
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+        <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i> Commissions</a>
+        <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
+        <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Profile</a>
+        <a href="settings.html" class="nav-item"><i class="ph ph-gear"></i> Settings</a>
+      </div>
+
+      <!-- Right side of top nav: notifications + mini avatar -->
+      <div class="profile-section">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="ph ph-bell"></i>
+          <span class="notification-dot"></span>
+        </button>
+
+        <div class="profile-avatar">
+          <img id="top-profile-avatar" src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+        </div>
+      </div>
+    </header>
+
+    <!-- Main page content area -->
+    <div class="content-wrapper">
+      <!-- Main profile content -->
+      <main class="main-content">
+        <div class="content-card glass-panel">
+          <section class="profile-layout">
+            <div class="profile-main profile-main-full">
+              <section class="profile-hero">
+                <div class="profile-hero-avatar-wrap">
+                  <label class="profile-avatar-editor" for="profile-image-input" aria-label="Change profile picture">
+                    <div class="avatar-circle avatar-initials profile-hero-avatar" data-profile-initials aria-label="Artist initials">
+                      AR
+                    </div>
+                    <div class="avatar-edit-badge">
+                      <i class="ph ph-plus"></i>
+                    </div>
+                  </label>
+                  <p class="profile-avatar-note">Tap the profile image to change it</p>
+                  <input id="profile-image-input" type="file" accept="image/*" hidden>
+                </div>
+
+                <div class="profile-hero-main">
+                  <div class="profile-headline">
+                    <div>
+                      <p class="profile-handle-label">Creator Profile</p>
+                      <h1 class="profile-name-large" data-profile-name>Username</h1>
+                    </div>
+                    <button id="profile-edit-btn" class="profile-edit-btn" type="button">Edit Profile</button>
+                  </div>
+
+                  <div class="profile-bio-card glass-panel-lite">
+                    <p class="profile-bio-copy" data-profile-bio>Description about themselves here.</p>
+                    <div class="profile-links">
+                      <a href="#"><i class="ph ph-at"></i> <span data-profile-social>@artist_handle</span></a>
+                      <a href="#"><i class="ph ph-globe"></i> <span data-profile-portfolio>Portfolio link</span></a>
+                      <a href="#" data-profile-email-link><i class="ph ph-envelope-simple"></i> <span data-profile-email>artist@example.com</span></a>
+                    </div>
+                  </div>
+
+                  <div class="profile-meta-row">
+                    <div class="profile-side-block stats-block">
+                      <div class="stat-row">
+                        <span class="stat-value" data-profile-name>Artist</span>
+                        <span class="stat-label">Display Name</span>
+                      </div>
+                      <div class="stat-row">
+                        <span class="stat-value" data-profile-email>artist@example.com</span>
+                        <span class="stat-label">Email</span>
+                      </div>
+                      <div class="stat-row">
+                        <span class="stat-value">Open</span>
+                        <span class="stat-label">Commissions</span>
+                      </div>
+                    </div>
+
+                    <div class="profile-side-block">
+                      <p class="side-kicker">Specialties</p>
+                      <div class="tag-list" id="profile-specialties">
+                        <span class="tag-pill">Digital Illustration</span>
+                        <span class="tag-pill">Comics</span>
+                        <span class="tag-pill">Crochet</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="profile-actions">
+                    <button id="profile-logout-btn" class="profile-action-btn profile-action-btn-secondary" type="button">Log Out</button>
+                    <button id="profile-delete-btn" class="profile-action-btn profile-action-btn-danger" type="button">Delete Account Data</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="profile-tabs-panel">
+                <div class="profile-tabs" role="tablist" aria-label="Profile sections">
+                  <button class="tab-btn active" type="button" data-profile-tab="posts" aria-selected="true">Posts</button>
+                  <button class="tab-btn" type="button" data-profile-tab="commissions" aria-selected="false">Commission</button>
+                  <button class="tab-btn" type="button" data-profile-tab="tutorials" aria-selected="false">Tutorial</button>
+                  <button class="tab-btn" type="button" data-profile-tab="portfolio" aria-selected="false">Portfolio</button>
+                </div>
+
+                <div class="profile-tab-panel active" data-profile-panel="posts">
+                  <section id="post-form-panel" class="profile-content-form glass-panel-lite is-hidden" aria-hidden="true">
+                    <div class="profile-content-form-header">
+                      <div>
+                        <p class="content-card-kicker">New Post</p>
+                        <h3 class="content-card-title">Share A Post</h3>
+                      </div>
+                      <button class="btn btn-secondary" type="button" id="post-form-close">Close</button>
+                    </div>
+
+                    <form id="post-form" class="profile-content-form-grid">
+                      <label class="commission-form-field">
+                        <span>Title</span>
+                        <input id="post-title" class="auth-input" type="text" placeholder="Late-night sketch drop" required>
+                      </label>
+
+                      <label class="commission-form-field profile-content-form-span">
+                        <span>Caption</span>
+                        <textarea id="post-caption" class="auth-input profile-content-textarea" placeholder="Tell people what inspired this piece." required></textarea>
+                      </label>
+
+                      <div class="commission-form-field profile-content-form-span">
+                        <span>Post Image</span>
+                        <label class="commission-upload-card" for="post-image-input">
+                          <input id="post-image-input" type="file" accept="image/*" hidden>
+                          <img id="post-image-preview" class="commission-upload-preview" alt="Post preview" hidden>
+                          <div id="post-upload-empty" class="commission-upload-empty">
+                            <span class="add-post-icon"><i class="ph ph-image-square"></i></span>
+                            <span class="add-post-title">Choose post artwork</span>
+                            <span class="add-post-copy">Select an image from your device to attach to this post.</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Publish Post</button>
+                        <button class="btn btn-secondary" type="button" id="post-form-reset">Clear</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <div class="post-grid profile-content-grid" id="profile-posts-grid">
+                    <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="posts">
+                      <span class="add-post-icon"><i class="ph ph-plus"></i></span>
+                      <span class="add-post-title">Add Post</span>
+                      <span class="add-post-copy">Open the post editor and upload an image from your device.</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="profile-tab-panel" data-profile-panel="commissions">
+                  <div class="post-grid profile-content-grid">
+                    <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="commissions">
+                      <span class="add-post-icon"><i class="ph ph-plus"></i></span>
+                      <span class="add-post-title">Add Commission</span>
+                      <span class="add-post-copy">Upload a sample, add pricing, and describe what clients can request.</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="profile-tab-panel" data-profile-panel="tutorials">
+                  <section id="tutorial-form-panel" class="profile-content-form glass-panel-lite is-hidden" aria-hidden="true">
+                    <div class="profile-content-form-header">
+                      <div>
+                        <p class="content-card-kicker">New Tutorial</p>
+                        <h3 class="content-card-title">Publish A Tutorial</h3>
+                      </div>
+                      <button class="btn btn-secondary" type="button" id="tutorial-form-close">Close</button>
+                    </div>
+
+                    <form id="tutorial-form" class="profile-content-form-grid">
+                      <label class="commission-form-field">
+                        <span>Title</span>
+                        <input id="tutorial-title" class="auth-input" type="text" placeholder="How I build glowing portraits" required>
+                      </label>
+
+                      <label class="commission-form-field profile-content-form-span">
+                        <span>Description</span>
+                        <textarea id="tutorial-description" class="auth-input profile-content-textarea" placeholder="Explain what the tutorial teaches and who it's for." required></textarea>
+                      </label>
+
+                      <div class="commission-form-field profile-content-form-span">
+                        <span>Tutorial Cover Media</span>
+                        <label class="commission-upload-card" for="tutorial-image-input">
+                          <input id="tutorial-image-input" type="file" accept="image/*,video/*" hidden>
+                          <img id="tutorial-image-preview" class="commission-upload-preview" alt="Tutorial preview" hidden>
+                          <video id="tutorial-video-preview" class="commission-upload-preview" controls hidden></video>
+                          <div id="tutorial-upload-empty" class="commission-upload-empty">
+                            <span class="add-post-icon"><i class="ph ph-play-circle"></i></span>
+                            <span class="add-post-title">Choose tutorial photo or video</span>
+                            <span class="add-post-copy">Select either an image or a video from your device for this tutorial.</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Publish Tutorial</button>
+                        <button class="btn btn-secondary" type="button" id="tutorial-form-reset">Clear</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <div class="post-grid profile-content-grid" id="profile-tutorials-grid">
+                    <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="tutorials">
+                      <span class="add-post-icon"><i class="ph ph-plus"></i></span>
+                      <span class="add-post-title">Add Tutorial</span>
+                      <span class="add-post-copy">Open the tutorial editor and upload a cover image from your device.</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="profile-tab-panel" data-profile-panel="portfolio">
+                  <section id="portfolio-form-panel" class="profile-content-form glass-panel-lite is-hidden" aria-hidden="true">
+                    <div class="profile-content-form-header">
+                      <div>
+                        <p class="content-card-kicker">New Portfolio Piece</p>
+                        <h3 class="content-card-title">Feature Your Work</h3>
+                      </div>
+                      <button class="btn btn-secondary" type="button" id="portfolio-form-close">Close</button>
+                    </div>
+
+                    <form id="portfolio-form" class="profile-content-form-grid">
+                      <label class="commission-form-field">
+                        <span>Title</span>
+                        <input id="portfolio-title" class="auth-input" type="text" placeholder="Editorial illustration series" required>
+                      </label>
+
+                      <label class="commission-form-field profile-content-form-span">
+                        <span>Summary</span>
+                        <textarea id="portfolio-summary" class="auth-input profile-content-textarea" placeholder="Share the idea behind this featured piece." required></textarea>
+                      </label>
+
+                      <div class="commission-form-field profile-content-form-span">
+                        <span>Portfolio Image</span>
+                        <label class="commission-upload-card" for="portfolio-image-input">
+                          <input id="portfolio-image-input" type="file" accept="image/*" hidden>
+                          <img id="portfolio-image-preview" class="commission-upload-preview" alt="Portfolio preview" hidden>
+                          <div id="portfolio-upload-empty" class="commission-upload-empty">
+                            <span class="add-post-icon"><i class="ph ph-image-square"></i></span>
+                            <span class="add-post-title">Choose portfolio artwork</span>
+                            <span class="add-post-copy">Select the image you want to feature in your portfolio.</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Save Portfolio Piece</button>
+                        <button class="btn btn-secondary" type="button" id="portfolio-form-reset">Clear</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <div class="post-grid profile-content-grid" id="profile-portfolio-grid">
+                    <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="portfolio">
+                      <span class="add-post-icon"><i class="ph ph-plus"></i></span>
+                      <span class="add-post-title">Add Portfolio Piece</span>
+                      <span class="add-post-copy">Open the portfolio editor and upload a featured image from your device.</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Shared site interactions -->
+  <script src="themer.js"></script>
+  <script src="script.js"></script>
+  <script src="profile.js"></script>
+</body>
+
+</html>

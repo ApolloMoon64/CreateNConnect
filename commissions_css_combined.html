@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Homepage</title>
+
+    <!-- Google Fonts + Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* ===== PASTE ALL YOUR CSS HERE ===== */
+        :root {
+            --bg-color-1: #fef08a;
+            --bg-color-2: #bfdbfe;
+            --surface-glass: rgba(255, 255, 255, 0.45);
+            --surface-border: rgba(255, 255, 255, 0.5);
+            --text-primary: #1e1e24;
+            --text-secondary: #4a4a5a;
+            --accent-color: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: rgba(37, 99, 235, 0.15);
+            --font-family: 'Outfit', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, var(--bg-color-1), var(--bg-color-2));
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        .nav-item.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 220px;
+            padding: 1rem;
+        }
+
+        .side-nav-item {
+            display: block;
+            padding: 0.7rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        /* MAIN */
+        .content-wrapper {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+        }
+
+        .content-card {
+            padding: 2rem;
+        }
+
+        /* GRID */
+        .commission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .commission-card {
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .commission-card img {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        /* CATEGORY SWITCH */
+        .category-section {
+            display: none;
+        }
+
+        .category-section.active {
+            display: block;
+        }
+
+        /* BUTTON */
+        .btn {
+            padding: 0.5rem 1rem;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- NAVBAR -->
+        <header class="top-nav">
+            <div class="nav-links">
+                <a href="#" class="nav-item">Home</a>
+                <a href="#" class="nav-item active">Commissions</a>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="side-nav-item" onclick="showCategory('digital', this)">Digital Art</div>
+                <div class="side-nav-item" onclick="showCategory('pottery', this)">Pottery</div>
+                <div class="side-nav-item" onclick="showCategory('jewelry', this)">Jewelry</div>
+                <div class="side-nav-item" onclick="showCategory('music', this)">Music</div>
+                <div class="side-nav-item" onclick="showCategory('crochet', this)">Crochet</div>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main class="main-content">
+                <div class="content-card">
+
+                    <!-- DIGITAL -->
+                    <div id="digital" class="category-section active">
+                        <h1>Digital Art</h1>
+                        <button class="btn" onclick="addCommission('digital-grid')">+ Add</button>
+                        <div class="commission-grid" id="digital-grid"></div>
+                    </div>
+
+                    <!-- POTTERY -->
+                    <div id="pottery" class="category-section">
+                        <h1>Pottery</h1>
+                        <button class="btn" onclick="addCommission('pottery-grid')">+ Add</button>
+                        <div class="commission-grid" id="pottery-grid"></div>
+                    </div>
+
+                    <!-- JEWELRY -->
+                    <div id="jewelry" class="category-section">
+                        <h1>Jewelry</h1>
+                        <button class="btn" onclick="addCommission('jewelry-grid')">+ Add</button>
+                        <div class="commission-grid" id="jewelry-grid"></div>
+                    </div>
+
+                    <!-- MUSIC -->
+                    <div id="music" class="category-section">
+                        <h1>Music</h1>
+                        <button class="btn" onclick="addCommission('music-grid')">+ Add</button>
+                        <div class="commission-grid" id="music-grid"></div>
+                    </div>
+
+                    <!-- CROCHET -->
+                    <div id="crochet" class="category-section">
+                        <h1>Crochet</h1>
+                        <button class="btn" onclick="addCommission('crochet-grid')">+ Add</button>
+                        <div class="commission-grid" id="crochet-grid"></div>
+                    </div>
+
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+    <script>
+        function showCategory(categoryId, element) {
+            document.querySelectorAll('.category-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            document.getElementById(categoryId).classList.add('active');
+        }
+
+        function addCommission(gridId) {
+            let title = prompt("Title");
+            let artist = prompt("Artist");
+            let price = prompt("Price");
+            let image = prompt("Image URL") || "https://picsum.photos/300";
+
+            let card = `
+        <div class="commission-card">
+            <img src="${image}">
+            <h3>${title}</h3>
+            <p>${artist}</p>
+            <p>$${price}</p>
+        </div>
+    `;
+
+            document.getElementById(gridId).innerHTML += card;
+        }
+    </script>
+
+</body>
+
+</html>
