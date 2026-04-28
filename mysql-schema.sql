@@ -76,3 +76,49 @@ CREATE TABLE IF NOT EXISTS tutorials (
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS communities (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  owner_user_id BIGINT UNSIGNED NULL,
+  name VARCHAR(160) NOT NULL,
+  category VARCHAR(80) NOT NULL,
+  region VARCHAR(80) NOT NULL,
+  description TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY communities_owner_user_id_index (owner_user_id),
+  CONSTRAINT communities_owner_user_id_fk
+    FOREIGN KEY (owner_user_id) REFERENCES users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS community_members (
+  community_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (community_id, user_id),
+  KEY community_members_user_id_index (user_id),
+  CONSTRAINT community_members_community_id_fk
+    FOREIGN KEY (community_id) REFERENCES communities(id)
+    ON DELETE CASCADE,
+  CONSTRAINT community_members_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS community_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  community_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY community_messages_community_id_index (community_id, id),
+  KEY community_messages_user_id_index (user_id),
+  CONSTRAINT community_messages_community_id_fk
+    FOREIGN KEY (community_id) REFERENCES communities(id)
+    ON DELETE CASCADE,
+  CONSTRAINT community_messages_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

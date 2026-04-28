@@ -122,6 +122,38 @@ function mapTutorial(row) {
     };
 }
 
+function mapCommunity(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        region: row.region,
+        description: row.description,
+        joined: Boolean(row.joined),
+        messageCount: Number(row.message_count || 0),
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
+function mapCommunityMessage(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        communityId: row.community_id,
+        userId: row.user_id,
+        authorName: row.author_name,
+        text: row.body,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
 async function initializeDatabase() {
     const bootstrapPool = mysql.createPool(basePoolConfig);
 
@@ -267,6 +299,58 @@ async function initializeDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS communities (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            owner_user_id BIGINT UNSIGNED NULL,
+            name VARCHAR(160) NOT NULL,
+            category VARCHAR(80) NOT NULL,
+            region VARCHAR(80) NOT NULL,
+            description TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY communities_owner_user_id_index (owner_user_id),
+            CONSTRAINT communities_owner_user_id_fk
+                FOREIGN KEY (owner_user_id) REFERENCES users(id)
+                ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS community_members (
+            community_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (community_id, user_id),
+            KEY community_members_user_id_index (user_id),
+            CONSTRAINT community_members_community_id_fk
+                FOREIGN KEY (community_id) REFERENCES communities(id)
+                ON DELETE CASCADE,
+            CONSTRAINT community_members_user_id_fk
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS community_messages (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            community_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            body TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY community_messages_community_id_index (community_id, id),
+            KEY community_messages_user_id_index (user_id),
+            CONSTRAINT community_messages_community_id_fk
+                FOREIGN KEY (community_id) REFERENCES communities(id)
+                ON DELETE CASCADE,
+            CONSTRAINT community_messages_user_id_fk
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     const [tutorialColumns] = await pool.query(`
         SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS
@@ -289,6 +373,8 @@ async function initializeDatabase() {
     await pool.query("ALTER TABLE posts MODIFY media_url LONGTEXT NOT NULL");
     await pool.query("ALTER TABLE portfolio_items MODIFY image_url LONGTEXT NOT NULL");
     await pool.query("ALTER TABLE tutorials MODIFY image_url LONGTEXT NOT NULL");
+
+    await seedDefaultCommunities();
 }
 
 async function healthCheck() {
@@ -512,7 +598,191 @@ async function deleteCommissionById(id, userId) {
     return result.affectedRows > 0;
 }
 
+async function seedDefaultCommunities() {
+    const [rows] = await pool.query("SELECT COUNT(*) AS community_count FROM communities");
+    if (Number(rows[0]?.community_count || 0) > 0) {
+        return;
+    }
+
+    const defaults = [
+        {
+            name: "Makers Lounge",
+            category: "Digital Art",
+            region: "North America",
+            description: "A daily chat for digital creators sharing works in progress, critique requests, and resource drops."
+        },
+        {
+            name: "Poetry Circle",
+            category: "Poetry",
+            region: "Europe",
+            description: "Weekly writing sprints, open mic planning, and feedback swaps for poets at any level."
+        },
+        {
+            name: "Crochet Commons",
+            category: "Crochet",
+            region: "Asia",
+            description: "Pattern help, yarn sourcing tips, and virtual stitch sessions across time zones."
+        }
+    ];
+
+    for (const community of defaults) {
+        await pool.query(
+            `INSERT INTO communities (name, category, region, description)
+             VALUES (?, ?, ?, ?)`,
+            [community.name, community.category, community.region, community.description]
+        );
+    }
+}
+
+async function listCommunitiesForUser(userId) {
+    const [rows] = await pool.query(
+        `SELECT communities.id,
+                communities.name,
+                communities.category,
+                communities.region,
+                communities.description,
+                communities.created_at,
+                community_members.user_id IS NOT NULL AS joined,
+                COUNT(community_messages.id) AS message_count
+         FROM communities
+         LEFT JOIN community_members
+           ON community_members.community_id = communities.id
+          AND community_members.user_id = ?
+         LEFT JOIN community_messages
+           ON community_messages.community_id = communities.id
+         GROUP BY communities.id,
+                  communities.name,
+                  communities.category,
+                  communities.region,
+                  communities.description,
+                  communities.created_at,
+                  community_members.user_id
+         ORDER BY communities.id DESC`,
+        [userId]
+    );
+
+    return rows.map(mapCommunity);
+}
+
+async function createCommunity({ userId, name, category, region, description }) {
+    const [result] = await pool.query(
+        `INSERT INTO communities (owner_user_id, name, category, region, description)
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, name, category, region, description]
+    );
+
+    await joinCommunity({ userId, communityId: result.insertId });
+
+    const [rows] = await pool.query(
+        `SELECT communities.id,
+                communities.name,
+                communities.category,
+                communities.region,
+                communities.description,
+                communities.created_at,
+                1 AS joined,
+                0 AS message_count
+         FROM communities
+         WHERE communities.id = ?
+         LIMIT 1`,
+        [result.insertId]
+    );
+
+    return mapCommunity(rows[0]);
+}
+
+async function getCommunityById(id) {
+    const [rows] = await pool.query(
+        `SELECT id, name, category, region, description, created_at
+         FROM communities
+         WHERE id = ?
+         LIMIT 1`,
+        [id]
+    );
+
+    return rows[0] || null;
+}
+
+async function isCommunityMember({ userId, communityId }) {
+    const [rows] = await pool.query(
+        `SELECT 1
+         FROM community_members
+         WHERE community_id = ?
+           AND user_id = ?
+         LIMIT 1`,
+        [communityId, userId]
+    );
+
+    return rows.length > 0;
+}
+
+async function joinCommunity({ userId, communityId }) {
+    await pool.query(
+        `INSERT IGNORE INTO community_members (community_id, user_id)
+         VALUES (?, ?)`,
+        [communityId, userId]
+    );
+}
+
+async function listCommunityMessages({ userId, communityId }) {
+    const member = await isCommunityMember({ userId, communityId });
+    if (!member) {
+        const error = new Error("Join this community before viewing its messages.");
+        error.statusCode = 403;
+        throw error;
+    }
+
+    const [rows] = await pool.query(
+        `SELECT community_messages.id,
+                community_messages.community_id,
+                community_messages.user_id,
+                community_messages.body,
+                community_messages.created_at,
+                users.name AS author_name
+         FROM community_messages
+         INNER JOIN users ON users.id = community_messages.user_id
+         WHERE community_messages.community_id = ?
+         ORDER BY community_messages.id ASC`,
+        [communityId]
+    );
+
+    return rows.map(mapCommunityMessage);
+}
+
+async function createCommunityMessage({ userId, communityId, body }) {
+    const member = await isCommunityMember({ userId, communityId });
+    if (!member) {
+        const error = new Error("Join this community before sending messages.");
+        error.statusCode = 403;
+        throw error;
+    }
+
+    const [result] = await pool.query(
+        `INSERT INTO community_messages (community_id, user_id, body)
+         VALUES (?, ?, ?)`,
+        [communityId, userId, body]
+    );
+
+    const [rows] = await pool.query(
+        `SELECT community_messages.id,
+                community_messages.community_id,
+                community_messages.user_id,
+                community_messages.body,
+                community_messages.created_at,
+                users.name AS author_name
+         FROM community_messages
+         INNER JOIN users ON users.id = community_messages.user_id
+         WHERE community_messages.id = ?
+         LIMIT 1`,
+        [result.insertId]
+    );
+
+    return mapCommunityMessage(rows[0]);
+}
+
 module.exports = {
+    createCommunity,
+    createCommunityMessage,
     createPortfolioItem,
     createCommission,
     createPost,
@@ -522,13 +792,17 @@ module.exports = {
     deleteUserById,
     findUserByEmail,
     getUserById,
+    getCommunityById,
     healthCheck,
     initializeDatabase,
     listAllCommissions,
+    listCommunitiesForUser,
+    listCommunityMessages,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
+    joinCommunity,
     pool,
     updateUserPasswordHash,
     updateUserProfile

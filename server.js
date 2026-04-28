@@ -5,6 +5,8 @@ const path = require("path");
 const crypto = require("crypto");
 const { URL } = require("url");
 const {
+    createCommunity,
+    createCommunityMessage,
     createPortfolioItem,
     createCommission,
     createPost,
@@ -13,14 +15,18 @@ const {
     deleteCommissionById,
     deleteUserById,
     findUserByEmail,
+    getCommunityById,
     getUserById,
     healthCheck,
     initializeDatabase,
     listAllCommissions,
+    listCommunitiesForUser,
+    listCommunityMessages,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
+    joinCommunity,
     updateUserPasswordHash,
     updateUserProfile
 } = require("./db");
@@ -524,6 +530,128 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "GET" && pathname === "/api/communities") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const communities = await listCommunitiesForUser(authenticatedUser.id);
+            sendJSON(res, 200, { communities });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/communities") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const { name, category, region, description } = await readBody(req);
+            const trimmedName = String(name || "").trim();
+            const trimmedCategory = String(category || "").trim();
+            const trimmedRegion = String(region || "").trim();
+            const trimmedDescription = String(description || "").trim();
+
+            if (!trimmedName || !trimmedCategory || !trimmedRegion || !trimmedDescription) {
+                sendJSON(res, 400, { error: "Community name, category, region, and intro are required." });
+                return;
+            }
+
+            const community = await createCommunity({
+                userId: authenticatedUser.id,
+                name: trimmedName,
+                category: trimmedCategory,
+                region: trimmedRegion,
+                description: trimmedDescription
+            });
+
+            sendJSON(res, 201, { community });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/communities\/[^/]+\/join$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const communityId = pathname.split("/")[3];
+            const community = await getCommunityById(communityId);
+
+            if (!community) {
+                sendJSON(res, 404, { error: "Community not found." });
+                return;
+            }
+
+            await joinCommunity({ userId: authenticatedUser.id, communityId });
+            const communities = await listCommunitiesForUser(authenticatedUser.id);
+            const joinedCommunity = communities.find((item) => String(item.id) === String(communityId));
+
+            sendJSON(res, 200, { community: joinedCommunity });
+            return;
+        }
+
+        if (req.method === "GET" && pathname.match(/^\/api\/communities\/[^/]+\/messages$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const communityId = pathname.split("/")[3];
+            const community = await getCommunityById(communityId);
+
+            if (!community) {
+                sendJSON(res, 404, { error: "Community not found." });
+                return;
+            }
+
+            const messages = await listCommunityMessages({
+                userId: authenticatedUser.id,
+                communityId
+            });
+
+            sendJSON(res, 200, { messages });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/communities\/[^/]+\/messages$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const communityId = pathname.split("/")[3];
+            const community = await getCommunityById(communityId);
+
+            if (!community) {
+                sendJSON(res, 404, { error: "Community not found." });
+                return;
+            }
+
+            const { text } = await readBody(req);
+            const body = String(text || "").trim();
+
+            if (!body) {
+                sendJSON(res, 400, { error: "Message text is required." });
+                return;
+            }
+
+            const message = await createCommunityMessage({
+                userId: authenticatedUser.id,
+                communityId,
+                body
+            });
+
+            sendJSON(res, 201, { message });
+            return;
+        }
+
         if (req.method === "POST" && pathname === "/api/auth/signup") {
             const { name, email, password } = await readBody(req);
 
@@ -876,7 +1004,11 @@ async function handleRequest(req, res) {
                         ? "Authentication request failed."
                         : "Request failed.";
 
-        const statusCode = error && error.code === "ER_BAD_DB_ERROR" ? 500 : 400;
+        const statusCode = error && error.statusCode
+            ? error.statusCode
+            : error && error.code === "ER_BAD_DB_ERROR"
+                ? 500
+                : 400;
         sendJSON(res, statusCode, { error: error.message || defaultMessage });
     }
 }
