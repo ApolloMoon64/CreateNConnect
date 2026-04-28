@@ -730,3 +730,11 @@ label {
     display: initial;
   }
 }
+
+[data-theme="light"]{
+    --bg-color-1: #fef08a;
+}
+
+[data-theme="dark"]{
+    --bg-color-1:#000000;
+}
