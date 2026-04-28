@@ -196,6 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         [logoutButton, deleteButton, editButton, profileAvatarEditor].forEach((element) => {
             if (element) {
                 element.hidden = true;
+                element.setAttribute("aria-hidden", "true");
             }
         });
     };
@@ -235,6 +236,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             <p class="content-card-copy">${copy}</p>
         </article>
     `;
+
+    const renderEmptySection = (title, copy) => {
+        if (!isOwnProfile) {
+            return "";
+        }
+
+        return renderEmptyCard(title, copy);
+    };
 
     const renderPostCard = (post) => `
         <article class="post-card post-content-card glass-panel-lite">
@@ -388,7 +397,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const content = posts.length
             ? posts.map(renderPostCard).join("")
-            : renderEmptyCard("No posts yet", "Your posts will show up here after you publish one.");
+            : renderEmptySection("No posts yet", "Your posts will show up here after you publish one.");
 
         postsGrid.innerHTML = `${createAddCardMarkup("posts")}${content}`;
         bindDynamicAddButtons();
@@ -401,7 +410,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const content = commissions.length
             ? commissions.map(renderCommissionCard).join("")
-            : renderEmptyCard(
+            : renderEmptySection(
                 "No commissions yet",
                 "Your commissions will appear here after you add one."
             );
@@ -417,7 +426,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const content = items.length
             ? items.map(renderPortfolioCard).join("")
-            : renderEmptyCard(
+            : renderEmptySection(
                 "No portfolio pieces yet",
                 "Add a featured piece to start building your portfolio showcase."
             );
@@ -433,7 +442,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const content = tutorials.length
             ? tutorials.map(renderTutorialCard).join("")
-            : renderEmptyCard(
+            : renderEmptySection(
                 "No tutorials yet",
                 "Your tutorials will appear here after you publish one."
             );
@@ -1029,8 +1038,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .join("");
         }
 
+        const savedAvatarUrl = isOwnProfile ? localStorage.getItem(profileImageStorageKey) : "";
         const avatarUrl =
-            localStorage.getItem(profileImageStorageKey) ||
+            savedAvatarUrl ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563eb&color=fff`;
 
         if (topAvatar) {
@@ -1133,7 +1143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             element.style.color = "";
         });
 
-        if (isOwnProfile && localStorage.getItem(profileImageStorageKey)) {
+        if (savedAvatarUrl) {
             profileAvatarEditor?.classList.add("has-image");
             initialsTargets.forEach((element) => {
                 element.style.backgroundImage = `url("${avatarUrl}")`;
