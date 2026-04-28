@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (isSignedIn) {
-            setMessage("You are already signed in. Log out to test another account.", "info");
+            setMessage("You are signed in. Continue to your profile or log out to use another account.", "info");
         } else {
             setMessage("");
         }
