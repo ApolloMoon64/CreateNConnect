@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const currentUserRaw = localStorage.getItem("currentUser");
+    const profileUserId = new URLSearchParams(window.location.search).get("userId");
     const logoutButton = document.getElementById("profile-logout-btn");
     const deleteButton = document.getElementById("profile-delete-btn");
     const editButton = document.getElementById("profile-edit-btn");
@@ -51,13 +52,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     const portfolioCloseButton = document.getElementById("portfolio-form-close");
     const tutorialCloseButton = document.getElementById("tutorial-form-close");
 
-    if (!currentUserRaw) {
+    if (!currentUserRaw && !profileUserId) {
         window.location.href = "auth.html";
         return;
     }
 
-    const currentUser = JSON.parse(currentUserRaw);
-    const profileImageStorageKey = `profileImage_${currentUser.id}`;
+    let currentUser = currentUserRaw ? JSON.parse(currentUserRaw) : null;
+    let signedInUser = null;
+    const targetUserId = profileUserId || currentUser?.id;
+    let isOwnProfile = false;
+    const profileImageStorageKey = `profileImage_${targetUserId}`;
 
     const setActiveTab = (tabName) => {
         tabButtons.forEach((button) => {
@@ -96,18 +100,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         return data;
     };
 
-    try {
-        const sessionData = await apiFetchJSON("/api/auth/me");
+    if (currentUser) {
+        try {
+            const sessionData = await apiFetchJSON("/api/auth/me");
 
-        if (String(sessionData.user.id) !== String(currentUser.id)) {
-            throw new Error("Signed in account changed.");
+            if (String(sessionData.user.id) !== String(currentUser.id)) {
+                throw new Error("Signed in account changed.");
+            }
+
+            signedInUser = sessionData.user;
+            currentUser = sessionData.user;
+            isOwnProfile = String(signedInUser.id) === String(targetUserId);
+            localStorage.setItem("currentUser", JSON.stringify(sessionData.user));
+        } catch (error) {
+            localStorage.removeItem("currentUser");
+
+            if (!profileUserId) {
+                window.location.href = "auth.html";
+                return;
+            }
         }
-
-        localStorage.setItem("currentUser", JSON.stringify(sessionData.user));
-    } catch (error) {
-        localStorage.removeItem("currentUser");
-        window.location.href = "auth.html";
-        return;
     }
 
     const pickImageFromDevice = () => new Promise((resolve, reject) => {
@@ -175,6 +187,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         panel.setAttribute("aria-hidden", "false");
     };
 
+    const hideOwnerControls = () => {
+        if (isOwnProfile) {
+            return;
+        }
+
+        [postFormPanel, commissionFormPanel, tutorialFormPanel, portfolioFormPanel].forEach(hidePanel);
+        [logoutButton, deleteButton, editButton, profileAvatarEditor].forEach((element) => {
+            if (element) {
+                element.hidden = true;
+            }
+        });
+    };
+
     const resetUploadPreview = ({ input, preview, emptyState, onReset }) => {
         if (input) {
             input.value = "";
@@ -217,6 +242,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="content-card-body">
                 <span class="content-card-kicker">Post</span>
                 <h3 class="content-card-title">${post.title}</h3>
+                <a class="content-card-author" href="profile.html?userId=${encodeURIComponent(post.userId)}">
+                    ${post.artistName || "View artist profile"}
+                </a>
                 <p class="content-card-copy">${post.caption}</p>
             </div>
         </article>
@@ -259,6 +287,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
 
     const createAddCardMarkup = (section) => {
+        if (!isOwnProfile) {
+            return "";
+        }
+
         const cards = {
             posts: `
                 <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="posts">
@@ -402,22 +434,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const loadPosts = async () => {
-        const data = await apiFetchJSON(`/api/users/${currentUser.id}/posts`);
+        const data = await apiFetchJSON(`/api/users/${targetUserId}/posts`);
         renderPosts(data.posts || []);
     };
 
     const loadCommissions = async () => {
-        const data = await apiFetchJSON(`/api/commissions?userId=${encodeURIComponent(currentUser.id)}`);
+        const data = await apiFetchJSON(`/api/commissions?userId=${encodeURIComponent(targetUserId)}`);
         renderCommissions(data.commissions || []);
     };
 
     const loadPortfolio = async () => {
-        const data = await apiFetchJSON(`/api/users/${currentUser.id}/portfolio`);
+        const data = await apiFetchJSON(`/api/users/${targetUserId}/portfolio`);
         renderPortfolio(data.items || []);
     };
 
     const loadTutorials = async () => {
-        const data = await apiFetchJSON(`/api/users/${currentUser.id}/tutorials`);
+        const data = await apiFetchJSON(`/api/users/${targetUserId}/tutorials`);
         renderTutorials(data.tutorials || []);
     };
 
@@ -935,7 +967,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     try {
-        const data = await apiFetchJSON(`/api/users/${currentUser.id}`);
+        const data = await apiFetchJSON(`/api/users/${targetUserId}`);
         const user = data.user;
         const profileDetails = {
             bio: user.bio,
@@ -1000,7 +1032,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             emailLink.href = `mailto:${user.email}`;
         }
 
-        if (profileImageInput) {
+        if (profileImageInput && isOwnProfile) {
             profileImageInput.addEventListener("change", () => {
                 const [file] = profileImageInput.files || [];
 
@@ -1034,7 +1066,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
 
-        if (editButton) {
+        if (editButton && isOwnProfile) {
             editButton.addEventListener("click", async () => {
                 const nextBio = window.prompt("Update your profile description:", profileDetails.bio);
                 if (nextBio === null) {
@@ -1092,7 +1124,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             element.style.color = "";
         });
 
-        if (localStorage.getItem(profileImageStorageKey)) {
+        if (isOwnProfile && localStorage.getItem(profileImageStorageKey)) {
             profileAvatarEditor?.classList.add("has-image");
             initialsTargets.forEach((element) => {
                 element.style.backgroundImage = `url("${avatarUrl}")`;
@@ -1108,9 +1140,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         hidePanel(commissionFormPanel);
         hidePanel(tutorialFormPanel);
         hidePanel(portfolioFormPanel);
+        hideOwnerControls();
         await Promise.all([loadPosts(), loadCommissions(), loadTutorials(), loadPortfolio()]);
     } catch (error) {
-        localStorage.removeItem("currentUser");
-        window.location.href = "auth.html";
+        if (!profileUserId) {
+            localStorage.removeItem("currentUser");
+            window.location.href = "auth.html";
+            return;
+        }
+
+        window.alert(error.message);
     }
 });

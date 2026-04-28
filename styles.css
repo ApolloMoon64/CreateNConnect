@@ -1353,6 +1353,15 @@ a {
     line-height: 1.3;
 }
 
+.content-card-author {
+    color: var(--accent-color);
+    font-weight: 700;
+}
+
+.content-card-author:hover {
+    text-decoration: underline;
+}
+
 .content-card-copy {
     color: var(--text-secondary);
     line-height: 1.55;

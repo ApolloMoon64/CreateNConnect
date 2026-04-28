@@ -84,6 +84,7 @@ function mapPost(row) {
         title: row.title,
         caption: row.caption,
         mediaUrl: row.media_url,
+        artistName: row.artist_name,
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -389,10 +390,11 @@ async function listAllCommissions() {
 
 async function listPostsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, caption, media_url, created_at
+        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.created_at, users.name AS artist_name
          FROM posts
-         WHERE user_id = ?
-         ORDER BY id DESC`,
+         INNER JOIN users ON users.id = posts.user_id
+         WHERE posts.user_id = ?
+         ORDER BY posts.id DESC`,
         [userId]
     );
 
@@ -407,9 +409,10 @@ async function createPost({ userId, title, caption, mediaUrl }) {
     );
 
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, caption, media_url, created_at
+        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.created_at, users.name AS artist_name
          FROM posts
-         WHERE id = ?
+         INNER JOIN users ON users.id = posts.user_id
+         WHERE posts.id = ?
          LIMIT 1`,
         [result.insertId]
     );
