@@ -193,12 +193,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         [postFormPanel, commissionFormPanel, tutorialFormPanel, portfolioFormPanel].forEach(hidePanel);
-        [logoutButton, deleteButton, editButton, profileAvatarEditor].forEach((element) => {
+        [logoutButton, deleteButton, editButton].forEach((element) => {
             if (element) {
                 element.hidden = true;
                 element.setAttribute("aria-hidden", "true");
             }
         });
+
+        if (profileAvatarEditor) {
+            profileAvatarEditor.classList.add("is-readonly");
+            profileAvatarEditor.removeAttribute("tabindex");
+            profileAvatarEditor.setAttribute("aria-label", "Profile picture");
+        }
+
+        const avatarNote = document.querySelector(".profile-avatar-note");
+        if (avatarNote) {
+            avatarNote.hidden = true;
+            avatarNote.setAttribute("aria-hidden", "true");
+        }
+
+        if (profileImageInput) {
+            profileImageInput.disabled = true;
+        }
     };
 
     const resetUploadPreview = ({ input, preview, emptyState, onReset }) => {
@@ -1043,8 +1059,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             savedAvatarUrl ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563eb&color=fff`;
 
-        if (topAvatar) {
-            topAvatar.src = avatarUrl;
+        if (topAvatar && signedInUser) {
+            const signedInAvatar =
+                localStorage.getItem(`profileImage_${signedInUser.id}`) ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(signedInUser.name)}&background=2563eb&color=fff`;
+            topAvatar.src = signedInAvatar;
+            topAvatar.alt = `${signedInUser.name} avatar`;
         }
 
         if (emailLink) {
@@ -1052,6 +1072,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (profileImageInput && isOwnProfile) {
+            profileAvatarEditor?.setAttribute("tabindex", "0");
+            profileAvatarEditor?.setAttribute("aria-label", "Change profile picture");
+            profileAvatarEditor?.addEventListener("click", () => {
+                profileImageInput.click();
+            });
+            profileAvatarEditor?.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    profileImageInput.click();
+                }
+            });
+
             profileImageInput.addEventListener("change", () => {
                 const [file] = profileImageInput.files || [];
 

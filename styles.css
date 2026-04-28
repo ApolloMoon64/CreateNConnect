@@ -1046,6 +1046,10 @@ a {
     cursor: pointer;
 }
 
+.profile-avatar-editor.is-readonly {
+    cursor: default;
+}
+
 .profile-hero-avatar {
     width: 220px;
     height: 220px;
@@ -1073,6 +1077,10 @@ a {
 }
 
 .profile-avatar-editor.has-image .avatar-edit-badge {
+    display: none;
+}
+
+.profile-avatar-editor.is-readonly .avatar-edit-badge {
     display: none;
 }
 
