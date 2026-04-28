@@ -598,6 +598,30 @@ async function deleteCommissionById(id, userId) {
     return result.affectedRows > 0;
 }
 
+async function deletePostById(id, userId) {
+    const [result] = await pool.query(
+        "DELETE FROM posts WHERE id = ? AND user_id = ?",
+        [id, userId]
+    );
+    return result.affectedRows > 0;
+}
+
+async function deletePortfolioItemById(id, userId) {
+    const [result] = await pool.query(
+        "DELETE FROM portfolio_items WHERE id = ? AND user_id = ?",
+        [id, userId]
+    );
+    return result.affectedRows > 0;
+}
+
+async function deleteTutorialById(id, userId) {
+    const [result] = await pool.query(
+        "DELETE FROM tutorials WHERE id = ? AND user_id = ?",
+        [id, userId]
+    );
+    return result.affectedRows > 0;
+}
+
 async function seedDefaultCommunities() {
     const [rows] = await pool.query("SELECT COUNT(*) AS community_count FROM communities");
     if (Number(rows[0]?.community_count || 0) > 0) {
@@ -789,6 +813,9 @@ module.exports = {
     createTutorial,
     createUser,
     deleteCommissionById,
+    deletePortfolioItemById,
+    deletePostById,
+    deleteTutorialById,
     deleteUserById,
     findUserByEmail,
     getUserById,

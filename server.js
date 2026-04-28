@@ -13,6 +13,9 @@ const {
     createTutorial,
     createUser,
     deleteCommissionById,
+    deletePortfolioItemById,
+    deletePostById,
+    deleteTutorialById,
     deleteUserById,
     findUserByEmail,
     getCommunityById,
@@ -762,6 +765,25 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/posts\/[^/]+$/)) {
+            const [, , , userId, , postId] = pathname.split("/");
+            const user = await requireResourceOwner(req, res, userId);
+
+            if (!user) {
+                return;
+            }
+
+            const deleted = await deletePostById(postId, userId);
+
+            if (!deleted) {
+                sendJSON(res, 404, { error: "Post not found for this user." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
         if (req.method === "GET" && pathname.match(/^\/api\/users\/[^/]+\/portfolio$/)) {
             const userId = pathname.split("/")[3];
             const user = await getUserById(userId);
@@ -804,6 +826,25 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/portfolio\/[^/]+$/)) {
+            const [, , , userId, , itemId] = pathname.split("/");
+            const user = await requireResourceOwner(req, res, userId);
+
+            if (!user) {
+                return;
+            }
+
+            const deleted = await deletePortfolioItemById(itemId, userId);
+
+            if (!deleted) {
+                sendJSON(res, 404, { error: "Portfolio item not found for this user." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
         if (req.method === "GET" && pathname.match(/^\/api\/users\/[^/]+\/tutorials$/)) {
             const userId = pathname.split("/")[3];
             const user = await getUserById(userId);
@@ -842,6 +883,25 @@ async function handleRequest(req, res) {
             });
 
             sendJSON(res, 201, { tutorial });
+            return;
+        }
+
+        if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/tutorials\/[^/]+$/)) {
+            const [, , , userId, , tutorialId] = pathname.split("/");
+            const user = await requireResourceOwner(req, res, userId);
+
+            if (!user) {
+                return;
+            }
+
+            const deleted = await deleteTutorialById(tutorialId, userId);
+
+            if (!deleted) {
+                sendJSON(res, 404, { error: "Tutorial not found for this user." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
             return;
         }
 

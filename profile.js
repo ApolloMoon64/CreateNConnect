@@ -261,8 +261,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         return renderEmptyCard(title, copy);
     };
 
+    const createDeleteButtonMarkup = (section, id, label) => {
+        if (!isOwnProfile) {
+            return "";
+        }
+
+        return `
+            <button
+                class="content-card-delete"
+                type="button"
+                data-delete-content="${section}"
+                data-delete-id="${encodeURIComponent(id)}"
+                aria-label="Delete ${label}"
+                title="Delete"
+            >
+                <i class="ph ph-trash"></i>
+            </button>
+        `;
+    };
+
     const renderPostCard = (post) => `
         <article class="post-card post-content-card glass-panel-lite">
+            ${createDeleteButtonMarkup("posts", post.id, "post")}
             <img class="content-card-image" src="${post.mediaUrl}" alt="${post.title}">
             <div class="content-card-body">
                 <span class="content-card-kicker">Post</span>
@@ -277,6 +297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const renderCommissionCard = (commission) => `
         <article class="post-card post-content-card glass-panel-lite">
+            ${createDeleteButtonMarkup("commissions", commission.id, "commission")}
             <img class="content-card-image" src="${commission.image}" alt="${commission.title}">
             <div class="content-card-body">
                 <span class="content-card-kicker">Commission</span>
@@ -292,6 +313,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const renderPortfolioCard = (item) => `
         <article class="post-card post-content-card glass-panel-lite">
+            ${createDeleteButtonMarkup("portfolio", item.id, "portfolio piece")}
             <img class="content-card-image" src="${item.imageUrl}" alt="${item.title}">
             <div class="content-card-body">
                 <span class="content-card-kicker">Portfolio</span>
@@ -306,6 +328,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const renderTutorialCard = (tutorial) => `
         <article class="post-card post-content-card glass-panel-lite">
+            ${createDeleteButtonMarkup("tutorials", tutorial.id, "tutorial")}
             ${tutorial.mediaType === "video"
                 ? `<video class="content-card-image" src="${tutorial.imageUrl}" controls preload="metadata"></video>`
                 : `<img class="content-card-image" src="${tutorial.imageUrl}" alt="${tutorial.title}">`}
@@ -406,6 +429,93 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     };
 
+    const getDeleteEndpoint = (section, id) => {
+        const encodedUserId = encodeURIComponent(currentUser.id);
+        const encodedId = encodeURIComponent(id);
+
+        if (section === "posts") {
+            return `/api/users/${encodedUserId}/posts/${encodedId}`;
+        }
+
+        if (section === "commissions") {
+            return `/api/commissions/${encodedId}?userId=${encodedUserId}`;
+        }
+
+        if (section === "portfolio") {
+            return `/api/users/${encodedUserId}/portfolio/${encodedId}`;
+        }
+
+        if (section === "tutorials") {
+            return `/api/users/${encodedUserId}/tutorials/${encodedId}`;
+        }
+
+        return "";
+    };
+
+    const reloadSection = async (section) => {
+        if (section === "posts") {
+            await loadPosts();
+            return;
+        }
+
+        if (section === "commissions") {
+            await loadCommissions();
+            return;
+        }
+
+        if (section === "portfolio") {
+            await loadPortfolio();
+            return;
+        }
+
+        if (section === "tutorials") {
+            await loadTutorials();
+        }
+    };
+
+    const bindDynamicDeleteButtons = () => {
+        if (!isOwnProfile) {
+            return;
+        }
+
+        document.querySelectorAll("[data-delete-content]").forEach((button) => {
+            if (button.dataset.bound === "true") {
+                return;
+            }
+
+            button.dataset.bound = "true";
+            button.addEventListener("click", async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const section = button.dataset.deleteContent;
+                const id = button.dataset.deleteId;
+                const endpoint = getDeleteEndpoint(section, id);
+
+                if (!endpoint) {
+                    return;
+                }
+
+                const confirmed = window.confirm("Delete this item? This cannot be undone.");
+                if (!confirmed) {
+                    return;
+                }
+
+                button.disabled = true;
+
+                try {
+                    await apiFetchJSON(endpoint, {
+                        method: "DELETE"
+                    });
+                    await reloadSection(section);
+                } catch (error) {
+                    button.disabled = false;
+                    window.alert(error.message);
+                }
+            });
+        });
+    };
+
     const renderPosts = (posts) => {
         if (!postsGrid) {
             return;
@@ -417,6 +527,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         postsGrid.innerHTML = `${createAddCardMarkup("posts")}${content}`;
         bindDynamicAddButtons();
+        bindDynamicDeleteButtons();
     };
 
     const renderCommissions = (commissions) => {
@@ -433,6 +544,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         commissionsGrid.innerHTML = `${createAddCardMarkup("commissions")}${content}`;
         bindDynamicAddButtons();
+        bindDynamicDeleteButtons();
     };
 
     const renderPortfolio = (items) => {
@@ -449,6 +561,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         portfolioGrid.innerHTML = `${createAddCardMarkup("portfolio")}${content}`;
         bindDynamicAddButtons();
+        bindDynamicDeleteButtons();
     };
 
     const renderTutorials = (tutorials) => {
@@ -465,6 +578,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         tutorialsGrid.innerHTML = `${createAddCardMarkup("tutorials")}${content}`;
         bindDynamicAddButtons();
+        bindDynamicDeleteButtons();
     };
 
     const loadPosts = async () => {
