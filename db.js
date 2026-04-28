@@ -205,7 +205,7 @@ async function initializeDatabase() {
             artist VARCHAR(160) NOT NULL,
             category VARCHAR(80) NOT NULL DEFAULT 'digital',
             price DECIMAL(10, 2) NOT NULL,
-            image TEXT NOT NULL,
+            image LONGTEXT NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY commissions_user_id_index (user_id),
@@ -221,7 +221,7 @@ async function initializeDatabase() {
             user_id BIGINT UNSIGNED NOT NULL,
             title VARCHAR(160) NOT NULL,
             caption TEXT NOT NULL,
-            media_url TEXT NOT NULL,
+            media_url LONGTEXT NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY posts_user_id_index (user_id),
@@ -237,7 +237,7 @@ async function initializeDatabase() {
             user_id BIGINT UNSIGNED NOT NULL,
             title VARCHAR(160) NOT NULL,
             summary TEXT NOT NULL,
-            image_url TEXT NOT NULL,
+            image_url LONGTEXT NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY portfolio_items_user_id_index (user_id),
@@ -253,7 +253,7 @@ async function initializeDatabase() {
             user_id BIGINT UNSIGNED NOT NULL,
             title VARCHAR(160) NOT NULL,
             description TEXT NOT NULL,
-            image_url TEXT NOT NULL,
+            image_url LONGTEXT NOT NULL,
             media_type VARCHAR(16) NOT NULL DEFAULT 'image',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -281,6 +281,11 @@ async function initializeDatabase() {
             ADD COLUMN media_type VARCHAR(16) NOT NULL DEFAULT 'image'
         `);
     }
+
+    await pool.query("ALTER TABLE commissions MODIFY image LONGTEXT NOT NULL");
+    await pool.query("ALTER TABLE posts MODIFY media_url LONGTEXT NOT NULL");
+    await pool.query("ALTER TABLE portfolio_items MODIFY image_url LONGTEXT NOT NULL");
+    await pool.query("ALTER TABLE tutorials MODIFY image_url LONGTEXT NOT NULL");
 }
 
 async function healthCheck() {

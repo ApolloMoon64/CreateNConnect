@@ -9,21 +9,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tabPanels = document.querySelectorAll("[data-profile-panel]");
     const addContentButtons = document.querySelectorAll("[data-add-content]");
     const postsGrid = document.getElementById("profile-posts-grid");
+    const commissionsGrid = document.getElementById("profile-commissions-grid");
     const tutorialsGrid = document.getElementById("profile-tutorials-grid");
     const portfolioGrid = document.getElementById("profile-portfolio-grid");
     const postFormPanel = document.getElementById("post-form-panel");
+    const commissionFormPanel = document.getElementById("commission-profile-form-panel");
     const portfolioFormPanel = document.getElementById("portfolio-form-panel");
     const tutorialFormPanel = document.getElementById("tutorial-form-panel");
     const postForm = document.getElementById("post-form");
+    const commissionForm = document.getElementById("commission-profile-form");
     const tutorialForm = document.getElementById("tutorial-form");
     const portfolioForm = document.getElementById("portfolio-form");
     const postTitleInput = document.getElementById("post-title");
     const postCaptionInput = document.getElementById("post-caption");
+    const commissionTitleInput = document.getElementById("commission-profile-title");
+    const commissionPriceInput = document.getElementById("commission-profile-price");
+    const commissionCategoryInput = document.getElementById("commission-profile-category");
+    const commissionImageInput = document.getElementById("commission-profile-image-input");
+    const commissionImagePreview = document.getElementById("commission-profile-image-preview");
+    const commissionUploadEmpty = document.getElementById("commission-profile-upload-empty");
     const postImageInput = document.getElementById("post-image-input");
     const postImagePreview = document.getElementById("post-image-preview");
     const postUploadEmpty = document.getElementById("post-upload-empty");
     const postResetButton = document.getElementById("post-form-reset");
+    const commissionResetButton = document.getElementById("commission-profile-form-reset");
     const postCloseButton = document.getElementById("post-form-close");
+    const commissionCloseButton = document.getElementById("commission-profile-form-close");
     const portfolioTitleInput = document.getElementById("portfolio-title");
     const tutorialTitleInput = document.getElementById("tutorial-title");
     const portfolioSummaryInput = document.getElementById("portfolio-summary");
@@ -141,6 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     let selectedPostImageData = "";
+    let selectedCommissionImageData = "";
     let selectedTutorialImageData = "";
     let selectedTutorialMediaType = "image";
     let selectedPortfolioImageData = "";
@@ -210,6 +222,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         </article>
     `;
 
+    const renderCommissionCard = (commission) => `
+        <article class="post-card post-content-card glass-panel-lite">
+            <img class="content-card-image" src="${commission.image}" alt="${commission.title}">
+            <div class="content-card-body">
+                <span class="content-card-kicker">Commission</span>
+                <h3 class="content-card-title">${commission.title}</h3>
+                <p class="content-card-copy">$${Number(commission.price).toFixed(2)} · ${commission.category}</p>
+            </div>
+        </article>
+    `;
+
+
     const renderPortfolioCard = (item) => `
         <article class="post-card post-content-card glass-panel-lite">
             <img class="content-card-image" src="${item.imageUrl}" alt="${item.title}">
@@ -241,6 +265,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <span class="add-post-icon"><i class="ph ph-plus"></i></span>
                     <span class="add-post-title">Add Post</span>
                     <span class="add-post-copy">Open the post editor and upload an image from your device.</span>
+                </button>
+            `,
+            commissions: `
+                <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="commissions">
+                    <span class="add-post-icon"><i class="ph ph-plus"></i></span>
+                    <span class="add-post-title">Add Commission</span>
+                    <span class="add-post-copy">Open the commission editor and upload a sample from your device.</span>
                 </button>
             `,
             portfolio: `
@@ -288,6 +319,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
+                if (section === "commissions") {
+                    setActiveTab("commissions");
+                    showPanel(commissionFormPanel);
+                    commissionForm?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    commissionTitleInput?.focus();
+                    return;
+                }
+
                 if (section === "tutorials") {
                     setActiveTab("tutorials");
                     showPanel(tutorialFormPanel);
@@ -296,13 +335,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
-                const labels = {
-                    commissions: "commission"
-                };
-
-                window.alert(
-                    `This is where the ${labels[section] || "content"} upload flow can go next.`
-                );
+                window.alert(`This is where the ${section || "content"} upload flow can go next.`);
             });
         });
     };
@@ -317,6 +350,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             : renderEmptyCard("No posts yet", "Your posts will show up here after you publish one.");
 
         postsGrid.innerHTML = `${createAddCardMarkup("posts")}${content}`;
+        bindDynamicAddButtons();
+    };
+
+    const renderCommissions = (commissions) => {
+        if (!commissionsGrid) {
+            return;
+        }
+
+        const content = commissions.length
+            ? commissions.map(renderCommissionCard).join("")
+            : renderEmptyCard(
+                "No commissions yet",
+                "Your commissions will appear here after you add one."
+            );
+
+        commissionsGrid.innerHTML = `${createAddCardMarkup("commissions")}${content}`;
         bindDynamicAddButtons();
     };
 
@@ -355,6 +404,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const loadPosts = async () => {
         const data = await apiFetchJSON(`/api/users/${currentUser.id}/posts`);
         renderPosts(data.posts || []);
+    };
+
+    const loadCommissions = async () => {
+        const data = await apiFetchJSON(`/api/commissions?userId=${encodeURIComponent(currentUser.id)}`);
+        renderCommissions(data.commissions || []);
     };
 
     const loadPortfolio = async () => {
@@ -412,6 +466,49 @@ document.addEventListener("DOMContentLoaded", async () => {
                     emptyState: postUploadEmpty,
                     onReset: () => {
                         selectedPostImageData = "";
+                    }
+                });
+            }
+        );
+    });
+
+    commissionImageInput?.addEventListener("change", () => {
+        const [file] = commissionImageInput.files || [];
+
+        if (!file) {
+            resetUploadPreview({
+                input: commissionImageInput,
+                preview: commissionImagePreview,
+                emptyState: commissionUploadEmpty,
+                onReset: () => {
+                    selectedCommissionImageData = "";
+                }
+            });
+            return;
+        }
+
+        readDeviceImage(
+            file,
+            (result) => {
+                selectedCommissionImageData = result;
+
+                if (commissionImagePreview) {
+                    commissionImagePreview.src = result;
+                    commissionImagePreview.hidden = false;
+                }
+
+                if (commissionUploadEmpty) {
+                    commissionUploadEmpty.hidden = true;
+                }
+            },
+            () => {
+                window.alert("Could not read the selected image.");
+                resetUploadPreview({
+                    input: commissionImageInput,
+                    preview: commissionImagePreview,
+                    emptyState: commissionUploadEmpty,
+                    onReset: () => {
+                        selectedCommissionImageData = "";
                     }
                 });
             }
@@ -570,6 +667,46 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
+    commissionForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!selectedCommissionImageData) {
+            window.alert("Please choose an image for your commission.");
+            return;
+        }
+
+        try {
+            await apiFetchJSON("/api/commissions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    userId: currentUser.id,
+                    title: commissionTitleInput.value.trim(),
+                    artist: currentUser.name || "",
+                    category: commissionCategoryInput.value,
+                    price: commissionPriceInput.value,
+                    image: selectedCommissionImageData
+                })
+            });
+
+            commissionForm.reset();
+            resetUploadPreview({
+                input: commissionImageInput,
+                preview: commissionImagePreview,
+                emptyState: commissionUploadEmpty,
+                onReset: () => {
+                    selectedCommissionImageData = "";
+                }
+            });
+            hidePanel(commissionFormPanel);
+            await loadCommissions();
+        } catch (error) {
+            window.alert(error.message);
+        }
+    });
+
     portfolioForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
 
@@ -663,6 +800,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
+    commissionResetButton?.addEventListener("click", () => {
+        commissionForm?.reset();
+        resetUploadPreview({
+            input: commissionImageInput,
+            preview: commissionImagePreview,
+            emptyState: commissionUploadEmpty,
+            onReset: () => {
+                selectedCommissionImageData = "";
+            }
+        });
+    });
+
     portfolioResetButton?.addEventListener("click", () => {
         portfolioForm?.reset();
         resetUploadPreview({
@@ -704,6 +853,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
         hidePanel(postFormPanel);
+    });
+
+    commissionCloseButton?.addEventListener("click", () => {
+        commissionForm?.reset();
+        resetUploadPreview({
+            input: commissionImageInput,
+            preview: commissionImagePreview,
+            emptyState: commissionUploadEmpty,
+            onReset: () => {
+                selectedCommissionImageData = "";
+            }
+        });
+        hidePanel(commissionFormPanel);
     });
 
     portfolioCloseButton?.addEventListener("click", () => {
@@ -943,9 +1105,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         hidePanel(postFormPanel);
+        hidePanel(commissionFormPanel);
         hidePanel(tutorialFormPanel);
         hidePanel(portfolioFormPanel);
-        await Promise.all([loadPosts(), loadTutorials(), loadPortfolio()]);
+        await Promise.all([loadPosts(), loadCommissions(), loadTutorials(), loadPortfolio()]);
     } catch (error) {
         localStorage.removeItem("currentUser");
         window.location.href = "auth.html";

@@ -187,7 +187,58 @@
                 </div>
 
                 <div class="profile-tab-panel" data-profile-panel="commissions">
-                  <div class="post-grid profile-content-grid">
+                  <section id="commission-profile-form-panel" class="profile-content-form glass-panel-lite is-hidden" aria-hidden="true">
+                    <div class="profile-content-form-header">
+                      <div>
+                        <p class="content-card-kicker">New Commission</p>
+                        <h3 class="content-card-title">Add A Commission</h3>
+                      </div>
+                      <button class="btn btn-secondary" type="button" id="commission-profile-form-close">Close</button>
+                    </div>
+
+                    <form id="commission-profile-form" class="profile-content-form-grid">
+                      <label class="commission-form-field">
+                        <span>Title</span>
+                        <input id="commission-profile-title" class="auth-input" type="text" placeholder="Character portrait commission" required>
+                      </label>
+
+                      <label class="commission-form-field">
+                        <span>Price</span>
+                        <input id="commission-profile-price" class="auth-input" type="number" min="0" step="0.01" placeholder="75" required>
+                      </label>
+
+                      <label class="commission-form-field profile-content-form-span">
+                        <span>Category</span>
+                        <select id="commission-profile-category" class="auth-input" required>
+                          <option value="digital">Digital Art</option>
+                          <option value="pottery">Pottery</option>
+                          <option value="jewelry">Jewelry</option>
+                          <option value="music">Music</option>
+                          <option value="crochet">Crochet</option>
+                        </select>
+                      </label>
+
+                      <div class="commission-form-field profile-content-form-span">
+                        <span>Artwork Image</span>
+                        <label class="commission-upload-card" for="commission-profile-image-input">
+                          <input id="commission-profile-image-input" type="file" accept="image/*" hidden>
+                          <img id="commission-profile-image-preview" class="commission-upload-preview" alt="Commission preview" hidden>
+                          <div id="commission-profile-upload-empty" class="commission-upload-empty">
+                            <span class="add-post-icon"><i class="ph ph-image-square"></i></span>
+                            <span class="add-post-title">Choose commission artwork</span>
+                            <span class="add-post-copy">Select a sample image from your device for this commission.</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Save Commission</button>
+                        <button class="btn btn-secondary" type="button" id="commission-profile-form-reset">Clear</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <div class="post-grid profile-content-grid" id="profile-commissions-grid">
                     <button class="post-card add-post-card glass-panel-lite" type="button" data-add-content="commissions">
                       <span class="add-post-icon"><i class="ph ph-plus"></i></span>
                       <span class="add-post-title">Add Commission</span>
