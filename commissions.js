@@ -95,7 +95,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             <article class="commission-card glass-panel" data-commission-id="${commission.id}">
                 <img src="${commission.image}" alt="${commission.title}">
                 <h3>${commission.title}</h3>
-                <p>Artist: ${commission.artist}</p>
+                <p>
+                    Artist:
+                    <a class="content-card-author" href="profile.html?userId=${encodeURIComponent(commission.userId)}">
+                        ${commission.artist}
+                    </a>
+                </p>
                 <p>$${Number(commission.price).toFixed(2)}</p>
                 ${isOwner
                     ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`

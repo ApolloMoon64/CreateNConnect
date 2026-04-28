@@ -256,6 +256,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="content-card-body">
                 <span class="content-card-kicker">Commission</span>
                 <h3 class="content-card-title">${commission.title}</h3>
+                <a class="content-card-author" href="profile.html?userId=${encodeURIComponent(commission.userId)}">
+                    ${commission.artist || "View artist profile"}
+                </a>
                 <p class="content-card-copy">$${Number(commission.price).toFixed(2)} · ${commission.category}</p>
             </div>
         </article>
@@ -268,6 +271,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="content-card-body">
                 <span class="content-card-kicker">Portfolio</span>
                 <h3 class="content-card-title">${item.title}</h3>
+                <a class="content-card-author" href="profile.html?userId=${encodeURIComponent(item.userId)}">
+                    ${item.artistName || "View artist profile"}
+                </a>
                 <p class="content-card-copy">${item.summary}</p>
             </div>
         </article>
@@ -281,6 +287,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="content-card-body">
                 <span class="content-card-kicker">Tutorial</span>
                 <h3 class="content-card-title">${tutorial.title}</h3>
+                <a class="content-card-author" href="profile.html?userId=${encodeURIComponent(tutorial.userId)}">
+                    ${tutorial.artistName || "View artist profile"}
+                </a>
                 <p class="content-card-copy">${tutorial.description}</p>
             </div>
         </article>

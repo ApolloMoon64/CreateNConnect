@@ -100,6 +100,7 @@ function mapPortfolioItem(row) {
         title: row.title,
         summary: row.summary,
         imageUrl: row.image_url,
+        artistName: row.artist_name,
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -116,6 +117,7 @@ function mapTutorial(row) {
         description: row.description,
         imageUrl: row.image_url,
         mediaType: row.media_type,
+        artistName: row.artist_name,
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -422,10 +424,11 @@ async function createPost({ userId, title, caption, mediaUrl }) {
 
 async function listPortfolioItemsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, summary, image_url, created_at
+        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.created_at, users.name AS artist_name
          FROM portfolio_items
-         WHERE user_id = ?
-         ORDER BY id DESC`,
+         INNER JOIN users ON users.id = portfolio_items.user_id
+         WHERE portfolio_items.user_id = ?
+         ORDER BY portfolio_items.id DESC`,
         [userId]
     );
 
@@ -440,9 +443,10 @@ async function createPortfolioItem({ userId, title, summary, imageUrl }) {
     );
 
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, summary, image_url, created_at
+        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.created_at, users.name AS artist_name
          FROM portfolio_items
-         WHERE id = ?
+         INNER JOIN users ON users.id = portfolio_items.user_id
+         WHERE portfolio_items.id = ?
          LIMIT 1`,
         [result.insertId]
     );
@@ -452,10 +456,11 @@ async function createPortfolioItem({ userId, title, summary, imageUrl }) {
 
 async function listTutorialsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, description, image_url, media_type, created_at
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
          FROM tutorials
-         WHERE user_id = ?
-         ORDER BY id DESC`,
+         INNER JOIN users ON users.id = tutorials.user_id
+         WHERE tutorials.user_id = ?
+         ORDER BY tutorials.id DESC`,
         [userId]
     );
 
@@ -470,9 +475,10 @@ async function createTutorial({ userId, title, description, imageUrl, mediaType 
     );
 
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, description, image_url, media_type, created_at
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
          FROM tutorials
-         WHERE id = ?
+         INNER JOIN users ON users.id = tutorials.user_id
+         WHERE tutorials.id = ?
          LIMIT 1`,
         [result.insertId]
     );
