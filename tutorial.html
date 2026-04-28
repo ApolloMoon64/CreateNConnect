@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Art Tutorials</title>
+    <link rel="stylesheet" href="tutorial_styles.css">
+    <!-- Using Google Fonts for a modern, sleek typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Using Phosphor Icons for a clean, modern icon set -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="top-nav glass-panel">
+            <div class="nav-links">
+                <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+                <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i> Commissions</a>
+                <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
+                <a href="settings.html" class="nav-item"><i class="ph ph-gear"></i> Settings</a>
+            </div>
+            
+            <div class="profile-section">
+                <!-- Notifications/Alerts Bell -->
+                <button class="icon-btn" aria-label="Notifications">
+                    <i class="ph ph-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <div class="profile-avatar">
+                    <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+                </div>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <!-- Left Vertical Sidebar -->
+            <aside class="sidebar glass-panel" id="sidebar">
+                <button class="toggle-btn" id="toggle-sidebar" aria-label="Toggle Navigation">
+                    <i class="ph ph-caret-left"></i>
+                </button>
+                <nav class="side-nav">
+                    <div class="nav-group-title">Commissions & Tutorials</div>
+                    <div class="side-nav-item-container">
+                        <a href="index.html" class="side-nav-item active"><i class="ph ph-monitor"></i> <span class="nav-text">Digital Art</span></a>
+                        <div class="submenu">
+                            <a href="tutorial.html" class="submenu-item active"><i class="ph ph-book-open"></i> <span class="nav-text">Tutorial</span></a>
+                            <a href="commissions.html" class="submenu-item"><i class="ph ph-shopping-cart"></i> <span class="nav-text">Commissions</span></a>
+                        </div>
+                    </div>
+                    <a href="pottery_page.html" class="side-nav-item"><i class="ph ph-coffee"></i> <span class="nav-text">Pottery</span></a>
+                    <a href="jewlery_page.html" class="side-nav-item"><i class="ph ph-diamond"></i> <span class="nav-text">Jewelry</span></a>
+                    <a href="music_page_frontend.html" class="side-nav-item"><i class="ph ph-music-notes"></i> <span class="nav-text">Music</span></a>
+                    <a href="crochet_page.html" class="side-nav-item"><i class="ph ph-yarn"></i> <span class="nav-text">Crochet</span></a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="content-card glass-panel">
+                    <div class="tutorial-grid">
+                        <!-- <div class="post-card">
+                            <div class="post-header">
+                                <div class="mini-avatar"></div>
+                                <span class="username">User123</span>
+                            </div>
+                            <div class="quilt-image">
+                                <img src="https://suzyquilts.com/wp-content/uploads/2020/08/Broom-Jumpers-Bisa-Butler-1.jpg" alt="Quilt" class="quilt-image">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">1.2k</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div> -->
+
+                        <!-- <div class="post-card">
+                            <div class="post-header">
+                                <div class="glass-art"></div>
+                                <span class="username">Artist1</span>
+                            </div>
+                            <div class="glass-art-image">
+                                <img src="https://inspgr.id/app/uploads/2024/04/art-simon-berger-feature-805x568.jpg" alt="Glass Art" class="glass-art-image">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">856</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div> -->
+
+                        <div class="post-card">
+                            <div class="post-header">
+                                <div class="mini-avatar"></div>
+                                <span class="username">Creative1</span>
+                            </div>
+                            <div class="video-preview">
+                                <img src="https://www.misstravelclogs.com/wp-content/uploads/2020/06/top-10-street-art-cities-in-the-UK.jpg" alt="Street Art preview">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">2.1k</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div>
+
+                        <div class="post-card">
+                            <div class="post-header">
+                                <div class="mini-avatar"></div>
+                                <span class="username">DigArt2</span>
+                            </div>
+                            <div class="video-preview">
+                                <img src="https://cdn.prod.website-files.com/65b19286607e503b8ea1a054/65df254c6979218c5fc6327d_photobashing_2.jpeg" alt="Digital Art preview">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">743</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div>
+
+                        <div class="post-card">
+                            <div class="post-header">
+                                <div class="mini-avatar"></div>
+                                <span class="username">ArtLover</span>
+                            </div>
+                            <div class="video-preview">
+                                <img src="painting.jpg" alt="Acrylic preview">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">1.5k</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div>
+
+                        <div class="post-card" id="tiktok-post">
+                            <div class="post-header">
+                                <div class="mini-avatar"></div>
+                                <span class="username">SketchMaster</span>
+                            </div>
+                            <div class="video-preview">
+                                <img src="https://www.milanartinstitute.com/hubfs/Screenshot%202025-04-07%20at%2012.20.59%20PM.png" alt="Sketch tutorial preview">
+                            </div>
+                            <div class="post-footer">
+                                <div class="views">932</div>
+                                <div class="like-btn">&#9825;</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Popup Modal -->
+                    <div id="video-modal" class="modal-overlay hidden">
+                        <div class="modal-content">
+                            <button id="modal-close" class="modal-close" aria-label="Close modal">×</button>
+                            <div class="modal-body">
+                                <div class="modal-video-panel">
+                                    <div class="modal-video-title">SketchMaster's Tutorial</div>
+                                    <iframe id="modal-video-iframe" src="" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                                <aside class="modal-comments-panel">
+                                    <h3>Comments</h3>
+                                    <form id="popup-comment-form" class="comment-form">
+                                        <input type="text" id="popup-commenter-name" placeholder="Your name" required>
+                                        <textarea id="popup-comment-text" rows="4" placeholder="Write your comment..." required></textarea>
+                                        <button type="submit">Post Comment</button>
+                                    </form>
+                                    <div id="popup-comments-list" class="comments-list">
+                                        <div class="comment-item"><strong>AliceSketcher</strong>: Amazing tutorial, thanks for sharing!</div>
+                                        <div class="comment-item"><strong>SketchingBruh</strong>: Great pacing and visuals. Learned a lot.</div>
+                                    </div>
+                                </aside>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="themer.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

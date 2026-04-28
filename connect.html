@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="connect.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="top-nav glass-panel">
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+        <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i> Commissions</a>
+        <a href="connect.html" class="nav-item active"><i class="ph ph-users"></i> Connect</a>
+        <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Profile</a>
+        <a href="#" class="nav-item"><i class="ph ph-gear"></i> Settings</a>
+      </div>
+
+      <div class="profile-section">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="ph ph-bell"></i>
+          <span class="notification-dot"></span>
+        </button>
+        <a class="profile-avatar" href="auth.html" aria-label="Open artist profile">
+          <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+        </a>
+      </div>
+    </header>
+
+    <main class="connect-page">
+      <p class="nav-caption">
+        Schedule creative meetups, track open seats, and join region-based communities with live group conversations.
+      </p>
+
+      <section class="top-shell" aria-label="Connect dashboard">
+      <aside class="rail card is-open" id="community-rail">
+        <div class="rail-header">
+          <div>
+            <span class="section-tag">Direct message</span>
+            <p class="panel-note">Quick access to joined communities.</p>
+          </div>
+          <button
+            class="ghost-button rail-toggle"
+            type="button"
+            id="rail-toggle"
+            aria-expanded="true"
+            aria-controls="community-list"
+            aria-label="Collapse community sidebar"
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+        </div>
+
+        <button class="primary-button full-width" type="button" id="quick-create-group">
+          + Create server
+        </button>
+
+        <div class="sidebar-block">
+          <h2>Communities</h2>
+          <div id="community-list" class="community-list" aria-live="polite"></div>
+        </div>
+      </aside>
+
+      <section class="message-stage card">
+        <div class="stage-topbar">
+          <div>
+            <p class="section-tag">Community chat</p>
+            <h2 id="active-community-name">Makers Lounge</h2>
+          </div>
+          <nav class="stage-nav" aria-label="Connect sections">
+            <button class="stage-tab active" type="button" data-panel="chat">Messages</button>
+            <button class="stage-tab" type="button" data-panel="meetings">Meetings</button>
+            <button class="stage-tab" type="button" data-panel="groups">Groups</button>
+          </nav>
+        </div>
+
+        <div class="stage-panel active" data-panel-content="chat">
+          <div id="chat-thread" class="chat-thread" aria-live="polite"></div>
+          <form id="chat-form" class="chat-form">
+            <label class="sr-only" for="chat-input">Message the selected community</label>
+            <input id="chat-input" name="message" type="text" placeholder="Message this community..." required>
+            <button class="primary-button" type="submit">Send</button>
+          </form>
+        </div>
+
+        <div class="stage-panel" data-panel-content="meetings">
+          <div class="meeting-toolbar">
+            <div>
+              <p class="section-tag">Live meeting board</p>
+              <h2>Upcoming gatherings</h2>
+            </div>
+            <p class="panel-note">Joining generates a Zoom-style meeting link and an email summary in this demo.</p>
+          </div>
+          <div id="meeting-list" class="meeting-list" aria-live="polite"></div>
+        </div>
+
+        <div class="stage-panel" data-panel-content="groups">
+          <div class="group-browser">
+            <div>
+              <p class="section-tag">Community finder</p>
+              <h2>Join a new or existing group</h2>
+            </div>
+            <div id="group-grid" class="group-grid" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="region-panel card">
+        <div class="sidebar-block">
+          <h2>Regions</h2>
+          <p class="muted-copy">Choose a region to filter both communities and meetings.</p>
+          <div id="region-list" class="region-list"></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="builder-grid">
+      <section class="builder card">
+        <div class="builder-header">
+          <div>
+            <p class="section-tag">Host controls</p>
+            <h2>Create or style a meeting</h2>
+          </div>
+          <p class="panel-note">
+            Hosts can customize the meeting title, type, capacity, timing, place, and visual mood.
+          </p>
+        </div>
+
+        <form id="meeting-form" class="meeting-form">
+          <label>
+            Meeting title
+            <input type="text" name="title" placeholder="Sunday Digital Art Critique" required>
+          </label>
+
+          <label>
+            Meeting type
+            <select name="type" required>
+              <option value="Workshop">Workshop</option>
+              <option value="Critique">Critique</option>
+              <option value="Open studio">Open studio</option>
+              <option value="Networking">Networking</option>
+              <option value="Community check-in">Community check-in</option>
+            </select>
+          </label>
+
+          <label>
+            Region
+            <select name="region" required>
+              <option value="North America">North America</option>
+              <option value="South America">South America</option>
+              <option value="Europe">Europe</option>
+              <option value="Asia">Asia</option>
+              <option value="Africa">Africa</option>
+              <option value="Oceania">Oceania</option>
+            </select>
+          </label>
+
+          <label>
+            Max people
+            <input type="number" name="capacity" min="2" max="250" value="12" required>
+          </label>
+
+          <label>
+            Date and time
+            <input type="datetime-local" name="datetime" required>
+          </label>
+
+          <label>
+            Place
+            <input type="text" name="location" placeholder="Boston studio + Zoom hybrid" required>
+          </label>
+
+          <label>
+            Cover style
+            <select name="theme">
+              <option value="sunrise">Sunrise sketch</option>
+              <option value="ocean">Ocean pulse</option>
+              <option value="forest">Forest notebook</option>
+              <option value="midnight">Midnight poster</option>
+            </select>
+          </label>
+
+          <label class="full-span">
+            Meeting details
+            <textarea name="description" rows="4" placeholder="Tell people what the meeting is about, what to bring, and how to prepare." required></textarea>
+          </label>
+
+          <div class="account-note full-span">
+            <span class="pill">Host email comes from your account profile automatically.</span>
+          </div>
+
+          <div class="form-actions full-span">
+            <button class="primary-button" type="submit">Create meeting</button>
+            <p class="panel-note" id="meeting-form-status">New meetings appear instantly in the live board.</p>
+          </div>
+        </form>
+      </section>
+
+      <section class="community-builder card">
+        <div class="builder-header">
+          <div>
+            <p class="section-tag">Community studio</p>
+            <h2>Start a new server</h2>
+          </div>
+          <p class="panel-note"> communities with chat rooms, region tags, and open membership.</p>
+        </div>
+
+        <form id="community-form" class="community-form">
+          <label>
+            Community name
+            <input type="text" name="name" placeholder="Global Crochet Circle" required>
+          </label>
+
+          <label>
+            Art focus
+            <select name="category" required>
+              <option value="Digital Art">Digital Art</option>
+              <option value="Poetry">Poetry</option>
+              <option value="Jewelry">Jewelry</option>
+              <option value="Music">Music</option>
+              <option value="Crochet">Crochet</option>
+              <option value="Mixed Media">Mixed Media</option>
+            </select>
+          </label>
+
+          <label>
+            Region
+            <select name="region" required>
+              <option value="North America">North America</option>
+              <option value="South America">South America</option>
+              <option value="Europe">Europe</option>
+              <option value="Asia">Asia</option>
+              <option value="Africa">Africa</option>
+              <option value="Oceania">Oceania</option>
+            </select>
+          </label>
+
+          <label class="full-span">
+            Community intro
+            <textarea name="description" rows="4" placeholder="Describe the people this group is for and what kinds of conversations happen there." required></textarea>
+          </label>
+
+          <div class="form-actions full-span">
+            <button class="primary-button" type="submit">Create community</button>
+            <p class="panel-note" id="community-form-status">New communities appear in the left rail and group browser.</p>
+          </div>
+        </form>
+      </section>
+    </section>
+    </main>
+  </div>
+
+  <script src="connect.js"></script>
+</body>
+</html>

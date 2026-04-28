@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Homepage - Music</title>
+    <script>
+        try {
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                document.documentElement.classList.add('sidebar-collapsed-init');
+            }
+        } catch (error) {}
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .page-title { margin-bottom: 20px; text-align: left; }
+        .commission-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+            gap:2rem;
+            margin-top:2rem;
+        }
+        .commission-card{
+            padding:1rem;
+            border-radius:16px;
+            transition:0.3s;
+        }
+        .commission-card iframe, .commission-card audio{
+            width:100%;
+            border-radius:12px;
+            margin-bottom:10px;
+        }
+        .commission-card:hover{
+            transform:translateY(-6px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="top-nav glass-panel">
+            <div class="nav-links">
+                <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+                <a href="commissions.html" class="nav-item active"><i class="ph ph-palette"></i> Commissions</a>
+                <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
+                <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Profile</a>
+                <a href="settings.html" class="nav-item"><i class="ph ph-gear"></i> Settings</a>
+            </div>
+            <div class="profile-section">
+                <button class="icon-btn" aria-label="Notifications">
+                    <i class="ph ph-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <a class="profile-avatar" href="profile.html">
+                    <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+                </a>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            <!-- Left Vertical Sidebar -->
+            <aside class="sidebar glass-panel" id="sidebar">
+                <button class="toggle-btn" id="toggle-sidebar" aria-label="Toggle Navigation">
+                    <i class="ph ph-caret-left"></i>
+                </button>
+                <nav class="side-nav">
+                    <div class="nav-group-title">Commissions & Tutorials</div>
+                    <a href="index.html" class="side-nav-item has-submenu"><i class="ph ph-monitor"></i> <span class="nav-text">Digital Art</span></a>
+                    <div class="submenu">
+                        <div class="submenu-inner">
+                            <a href="tutorial.html" class="submenu-item">Tutorials</a>
+                            <a href="commissions.html" class="submenu-item">Comm.</a>
+                        </div>
+                    </div>
+                    <a href="pottery_page.html" class="side-nav-item"><i class="ph ph-coffee"></i> <span class="nav-text">Pottery</span></a>
+                    <a href="jewlery_page.html" class="side-nav-item"><i class="ph ph-diamond"></i> <span class="nav-text">Jewelry</span></a>
+                    <a href="music_page_frontend.html" class="side-nav-item active"><i class="ph ph-music-notes"></i> <span class="nav-text">Music</span></a>
+                    <a href="crochet_page.html" class="side-nav-item"><i class="ph ph-yarn"></i> <span class="nav-text">Crochet</span></a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="content-card glass-panel" id="commission-page">
+                    <h1 class="page-title">Music Commissions</h1>
+
+                    <div style="margin-bottom:20px;">
+                        <button class="btn btn-primary" onclick="addCommission()">+ Add Commission</button>
+                    </div>
+
+                    <div class="commission-grid" id="commission-grid"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="themer.js"></script>
+    <script src="script.js"></script>
+    <script>
+        function addCommission() {
+            let title = prompt("Enter track title:");
+            let price = prompt("Enter price:");
+            let url = prompt("Enter music/video URL (YouTube or audio file):");
+
+            if (!title || !price || !url) {
+                alert("Please fill all fields!");
+                return;
+            }
+
+            let mediaHTML = "";
+
+            if (url.includes("youtube.com") || url.includes("youtu.be")) {
+                let videoId = url.split("v=")[1] || url.split("/").pop();
+                mediaHTML = `<iframe height="200" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+            } 
+            else {
+                mediaHTML = `<audio controls>
+                                <source src="${url}" type="audio/mpeg">
+                             </audio>`;
+            }
+
+            let card = document.createElement("div");
+            card.className = "commission-card glass-panel";
+            card.innerHTML = `
+                ${mediaHTML}
+                <h3>${title}</h3>
+                <p>$${price}</p>
+            `;
+
+            document.getElementById("commission-grid").appendChild(card);
+        }
+    </script>
+</body>
+</html>
