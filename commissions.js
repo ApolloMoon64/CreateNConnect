@@ -88,17 +88,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         crochet: "Crochet"
     };
 
-    const renderCommission = (commission) => `
-        <article class="commission-card glass-panel" data-commission-id="${commission.id}">
-            <img src="${commission.image}" alt="${commission.title}">
-            <h3>${commission.title}</h3>
-            <p>Artist: ${commission.artist}</p>
-            <p>$${Number(commission.price).toFixed(2)}</p>
-            <button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">
-                Remove
-            </button>
-        </article>
-    `;
+    const renderCommission = (commission) => {
+        const isOwner = String(commission.userId) === String(currentUser.id);
+
+        return `
+            <article class="commission-card glass-panel" data-commission-id="${commission.id}">
+                <img src="${commission.image}" alt="${commission.title}">
+                <h3>${commission.title}</h3>
+                <p>Artist: ${commission.artist}</p>
+                <p>$${Number(commission.price).toFixed(2)}</p>
+                ${isOwner
+                    ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`
+                    : ""}
+            </article>
+        `;
+    };
 
     const renderEmptyState = (label) => `
         <div class="glass-panel commission-empty-state">
@@ -163,7 +167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const loadCommissions = async () => {
         try {
-            const data = await apiFetchJSON(`/api/commissions?userId=${encodeURIComponent(currentUser.id)}`);
+            const data = await apiFetchJSON("/api/commissions");
             renderGroupedCommissions(data.commissions || []);
         } catch (error) {
             setMessage(error.message, "error");

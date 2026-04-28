@@ -376,6 +376,17 @@ async function listCommissionsByUserId(userId) {
     return rows.map(mapCommission);
 }
 
+async function listAllCommissions() {
+    const [rows] = await pool.query(
+        `SELECT id, user_id, title, artist, category, price, image, created_at
+         FROM commissions
+         ORDER BY id DESC`
+    );
+
+    return rows.map(mapCommission);
+}
+
+
 async function listPostsByUserId(userId) {
     const [rows] = await pool.query(
         `SELECT id, user_id, title, caption, media_url, created_at
@@ -504,6 +515,7 @@ module.exports = {
     getUserById,
     healthCheck,
     initializeDatabase,
+    listAllCommissions,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,

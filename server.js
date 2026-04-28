@@ -16,6 +16,7 @@ const {
     getUserById,
     healthCheck,
     initializeDatabase,
+    listAllCommissions,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,
@@ -778,7 +779,8 @@ async function handleRequest(req, res) {
             const userId = requestUrl.searchParams.get("userId");
 
             if (!userId) {
-                sendJSON(res, 400, { error: "userId is required." });
+                const commissions = await listAllCommissions();
+                sendJSON(res, 200, { commissions });
                 return;
             }
 
