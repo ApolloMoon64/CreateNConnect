@@ -280,6 +280,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     };
 
+    const createPurchaseButtonMarkup = ({ itemType, id, title, artistName, price }) => {
+        if (isOwnProfile || !signedInUser) {
+            return "";
+        }
+
+        const priceLabel = price === null || price === undefined || price === ""
+            ? "Price to be arranged"
+            : `$${Number(price).toFixed(2)}`;
+
+        return `
+            <button
+                class="btn btn-primary content-card-purchase purchase-art-btn"
+                type="button"
+                data-purchase-item-type="${itemType}"
+                data-purchase-item-id="${encodeURIComponent(id)}"
+                data-purchase-title="${encodeURIComponent(title || "Artwork")}"
+                data-purchase-artist="${encodeURIComponent(artistName || "Artist")}"
+                data-purchase-price="${encodeURIComponent(priceLabel)}"
+            >
+                Purchase
+            </button>
+        `;
+    };
+
     const renderPostCard = (post) => `
         <article class="post-card post-content-card glass-panel-lite">
             ${createDeleteButtonMarkup("posts", post.id, "post")}
@@ -291,6 +315,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${post.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${post.caption}</p>
+                ${createPurchaseButtonMarkup({
+                    itemType: "post",
+                    id: post.id,
+                    title: post.title,
+                    artistName: post.artistName,
+                    price: null
+                })}
             </div>
         </article>
     `;
@@ -306,6 +337,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${commission.artist || "View artist profile"}
                 </a>
                 <p class="content-card-copy">$${Number(commission.price).toFixed(2)} · ${commission.category}</p>
+                ${createPurchaseButtonMarkup({
+                    itemType: "commission",
+                    id: commission.id,
+                    title: commission.title,
+                    artistName: commission.artist,
+                    price: commission.price
+                })}
             </div>
         </article>
     `;
@@ -322,6 +360,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${item.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${item.summary}</p>
+                ${createPurchaseButtonMarkup({
+                    itemType: "portfolio",
+                    id: item.id,
+                    title: item.title,
+                    artistName: item.artistName,
+                    price: null
+                })}
             </div>
         </article>
     `;
@@ -339,6 +384,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${tutorial.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${tutorial.description}</p>
+                ${createPurchaseButtonMarkup({
+                    itemType: "tutorial",
+                    id: tutorial.id,
+                    title: tutorial.title,
+                    artistName: tutorial.artistName,
+                    price: null
+                })}
             </div>
         </article>
     `;

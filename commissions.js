@@ -104,7 +104,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <p>$${Number(commission.price).toFixed(2)}</p>
                 ${isOwner
                     ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`
-                    : ""}
+                    : `<button
+                        class="btn btn-primary purchase-art-btn"
+                        type="button"
+                        data-purchase-item-type="commission"
+                        data-purchase-item-id="${encodeURIComponent(commission.id)}"
+                        data-purchase-title="${encodeURIComponent(commission.title)}"
+                        data-purchase-artist="${encodeURIComponent(commission.artist)}"
+                        data-purchase-price="${encodeURIComponent(`$${Number(commission.price).toFixed(2)}`)}"
+                    >
+                        Purchase
+                    </button>`}
             </article>
         `;
     };

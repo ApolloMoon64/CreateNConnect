@@ -7,9 +7,11 @@ const { URL } = require("url");
 const {
     createCommunity,
     createCommunityMessage,
+    createNotification,
     createPortfolioItem,
     createCommission,
     createPost,
+    createPurchase,
     createTutorial,
     createUser,
     deleteCommissionById,
@@ -19,17 +21,21 @@ const {
     deleteUserById,
     findUserByEmail,
     getCommunityById,
+    getPurchasableItem,
     getUserById,
     healthCheck,
     initializeDatabase,
     listAllCommissions,
     listCommunitiesForUser,
     listCommunityMessages,
+    listNotificationsForUser,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
     joinCommunity,
+    markAllNotificationsRead,
+    markNotificationRead,
     updateUserPasswordHash,
     updateUserProfile
 } = require("./db");
@@ -530,6 +536,105 @@ async function handleRequest(req, res) {
             });
 
             sendJSON(res, 200, result);
+            return;
+        }
+
+        if (req.method === "GET" && pathname === "/api/notifications") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const notifications = await listNotificationsForUser(authenticatedUser.id);
+            const unreadCount = notifications.filter((notification) => !notification.readAt).length;
+            sendJSON(res, 200, { notifications, unreadCount });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/notifications/read-all") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            await markAllNotificationsRead(authenticatedUser.id);
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/notifications\/[^/]+\/read$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const notificationId = pathname.split("/")[3];
+            const marked = await markNotificationRead({
+                userId: authenticatedUser.id,
+                notificationId
+            });
+
+            if (!marked) {
+                sendJSON(res, 404, { error: "Notification not found." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/purchases") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const { itemType, itemId, buyerName, buyerEmail, note } = await readBody(req);
+            const item = await getPurchasableItem(itemType, itemId);
+
+            if (!item) {
+                sendJSON(res, 404, { error: "Artwork not found." });
+                return;
+            }
+
+            if (String(item.userId) === String(authenticatedUser.id)) {
+                sendJSON(res, 400, { error: "You cannot purchase your own artwork." });
+                return;
+            }
+
+            const cleanBuyerName = String(buyerName || authenticatedUser.name || "").trim();
+            const cleanBuyerEmail = String(buyerEmail || authenticatedUser.email || "").trim().toLowerCase();
+
+            if (!cleanBuyerName || !isValidEmailAddress(cleanBuyerEmail)) {
+                sendJSON(res, 400, { error: "Buyer name and a valid email are required." });
+                return;
+            }
+
+            const purchase = await createPurchase({
+                buyerUserId: authenticatedUser.id,
+                sellerUserId: item.userId,
+                itemType: item.itemType,
+                itemId: item.id,
+                itemTitle: item.title,
+                amount: item.price,
+                buyerName: cleanBuyerName,
+                buyerEmail: cleanBuyerEmail,
+                note: String(note || "").trim()
+            });
+
+            await createNotification({
+                userId: item.userId,
+                actorUserId: authenticatedUser.id,
+                title: "New artwork purchase",
+                body: `${cleanBuyerName} purchased "${item.title}". Follow up at ${cleanBuyerEmail}.`,
+                linkUrl: `profile.html?userId=${encodeURIComponent(item.userId)}`
+            });
+
+            sendJSON(res, 201, { purchase });
             return;
         }
 

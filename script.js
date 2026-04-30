@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const currentUserRaw = localStorage.getItem('currentUser');
     const navAvatarImages = document.querySelectorAll('.profile-avatar img');
+    let currentUser = null;
 
     if (currentUserRaw && navAvatarImages.length) {
         try {
-            const currentUser = JSON.parse(currentUserRaw);
+            currentUser = JSON.parse(currentUserRaw);
             const savedProfileImage = localStorage.getItem(`profileImage_${currentUser.id}`);
             const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=2563eb&color=fff`;
             const avatarSrc = savedProfileImage || fallbackAvatar;
@@ -13,7 +14,296 @@ document.addEventListener('DOMContentLoaded', () => {
                 image.src = avatarSrc;
             });
         } catch (error) {}
+    } else if (currentUserRaw) {
+        try {
+            currentUser = JSON.parse(currentUserRaw);
+        } catch (error) {}
     }
+
+    const readResponsePayload = async (response) => {
+        const raw = await response.text();
+
+        if (!raw) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            throw new Error('The server returned an unexpected response.');
+        }
+    };
+
+    const apiFetchJSON = async (url, options = {}) => {
+        const response = await fetch(url, options);
+        const data = await readResponsePayload(response);
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Request failed.');
+        }
+
+        return data;
+    };
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const decodeDataValue = (value) => {
+        try {
+            return decodeURIComponent(value || '');
+        } catch (error) {
+            return value || '';
+        }
+    };
+
+    const ensurePurchaseModal = () => {
+        let modal = document.getElementById('purchase-modal');
+        if (modal) {
+            return modal;
+        }
+
+        modal = document.createElement('div');
+        modal.id = 'purchase-modal';
+        modal.className = 'purchase-modal hidden';
+        modal.innerHTML = `
+            <div class="purchase-dialog glass-panel" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title">
+                <button class="purchase-close" type="button" data-purchase-close aria-label="Close purchase form">
+                    <i class="ph ph-x"></i>
+                </button>
+                <p class="content-card-kicker">Demo checkout</p>
+                <h2 id="purchase-modal-title">Purchase artwork</h2>
+                <p class="purchase-summary" data-purchase-summary></p>
+                <form id="purchase-form" class="purchase-form">
+                    <input type="hidden" name="itemType">
+                    <input type="hidden" name="itemId">
+                    <label class="commission-form-field">
+                        <span>Name</span>
+                        <input class="auth-input" name="buyerName" type="text" required>
+                    </label>
+                    <label class="commission-form-field">
+                        <span>Email</span>
+                        <input class="auth-input" name="buyerEmail" type="email" required>
+                    </label>
+                    <label class="commission-form-field">
+                        <span>Payment method</span>
+                        <select class="auth-input" name="paymentMethod" required>
+                            <option value="demo-card">Demo card ending in 4242</option>
+                            <option value="demo-paypal">Demo PayPal</option>
+                            <option value="artist-followup">Artist follow-up</option>
+                        </select>
+                    </label>
+                    <label class="commission-form-field purchase-form-span">
+                        <span>Delivery note</span>
+                        <textarea class="auth-input profile-content-textarea" name="note" placeholder="Sizing, shipping, or customization notes"></textarea>
+                    </label>
+                    <p class="purchase-disclaimer">This is a project demo checkout. No real payment is collected.</p>
+                    <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Complete Purchase</button>
+                        <button class="btn btn-secondary" type="button" data-purchase-close>Cancel</button>
+                    </div>
+                    <p class="purchase-status" data-purchase-status aria-live="polite"></p>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('[data-purchase-close]').forEach((button) => {
+            button.addEventListener('click', () => modal.classList.add('hidden'));
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        modal.querySelector('#purchase-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = modal.querySelector('[data-purchase-status]');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const formData = new FormData(form);
+
+            if (!currentUser?.id) {
+                window.location.href = 'auth.html';
+                return;
+            }
+
+            status.textContent = 'Completing demo purchase...';
+            submitButton.disabled = true;
+
+            try {
+                await apiFetchJSON('/api/purchases', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        itemType: formData.get('itemType'),
+                        itemId: formData.get('itemId'),
+                        buyerName: formData.get('buyerName'),
+                        buyerEmail: formData.get('buyerEmail'),
+                        note: formData.get('note')
+                    })
+                });
+
+                status.textContent = 'Purchase complete. The artist has been notified.';
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    status.textContent = '';
+                    submitButton.disabled = false;
+                }, 1200);
+            } catch (error) {
+                status.textContent = error.message;
+                submitButton.disabled = false;
+            }
+        });
+
+        return modal;
+    };
+
+    const openPurchaseModal = (button) => {
+        if (!currentUser?.id) {
+            window.location.href = 'auth.html';
+            return;
+        }
+
+        const modal = ensurePurchaseModal();
+        const form = modal.querySelector('#purchase-form');
+        const summary = modal.querySelector('[data-purchase-summary]');
+        const status = modal.querySelector('[data-purchase-status]');
+        const title = decodeDataValue(button.dataset.purchaseTitle) || 'Artwork';
+        const artist = decodeDataValue(button.dataset.purchaseArtist) || 'Artist';
+        const price = decodeDataValue(button.dataset.purchasePrice) || 'Price to be arranged';
+
+        form.reset();
+        form.elements.itemType.value = button.dataset.purchaseItemType || '';
+        form.elements.itemId.value = decodeDataValue(button.dataset.purchaseItemId);
+        form.elements.buyerName.value = currentUser.name || '';
+        form.elements.buyerEmail.value = currentUser.email || '';
+        summary.textContent = `${title} by ${artist} · ${price}`;
+        status.textContent = '';
+        form.querySelector('button[type="submit"]').disabled = false;
+        modal.classList.remove('hidden');
+        form.elements.buyerName.focus();
+    };
+
+    document.addEventListener('click', (event) => {
+        const purchaseButton = event.target.closest('.purchase-art-btn');
+        if (!purchaseButton) {
+            return;
+        }
+
+        event.preventDefault();
+        openPurchaseModal(purchaseButton);
+    });
+
+    const setupNotifications = () => {
+        const bellButton = document.querySelector('.profile-section .icon-btn[aria-label="Notifications"]');
+        if (!bellButton || !currentUser?.id) {
+            document.querySelectorAll('.notification-dot').forEach((dot) => {
+                dot.hidden = true;
+            });
+            return;
+        }
+
+        let panel = document.getElementById('notification-panel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'notification-panel';
+            panel.className = 'notification-panel glass-panel hidden';
+            panel.innerHTML = `
+                <div class="notification-panel-header">
+                    <h2>Notifications</h2>
+                    <button class="ghost-button" type="button" data-notifications-read>Mark read</button>
+                </div>
+                <div class="notification-list" data-notification-list>
+                    <p class="muted-copy">No notifications yet.</p>
+                </div>
+            `;
+            bellButton.insertAdjacentElement('afterend', panel);
+        }
+
+        const renderNotifications = ({ notifications = [], unreadCount = 0 }) => {
+            const list = panel.querySelector('[data-notification-list]');
+            const dots = document.querySelectorAll('.notification-dot');
+
+            dots.forEach((dot) => {
+                dot.hidden = unreadCount === 0;
+            });
+
+            if (!notifications.length) {
+                list.innerHTML = '<p class="muted-copy">No notifications yet.</p>';
+                return;
+            }
+
+            list.innerHTML = notifications.map((notification) => `
+                <article class="notification-item${notification.readAt ? '' : ' unread'}">
+                    <strong>${escapeHtml(notification.title)}</strong>
+                    <p>${escapeHtml(notification.body)}</p>
+                    <span>${formatNotificationTime(notification.createdAt)}</span>
+                </article>
+            `).join('');
+        };
+
+        const loadNotifications = async () => {
+            try {
+                const data = await apiFetchJSON('/api/notifications');
+                renderNotifications(data);
+            } catch (error) {
+                panel.querySelector('[data-notification-list]').innerHTML =
+                    `<p class="muted-copy">${escapeHtml(error.message)}</p>`;
+            }
+        };
+
+        bellButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                await loadNotifications();
+            }
+        });
+
+        panel.querySelector('[data-notifications-read]')?.addEventListener('click', async () => {
+            await apiFetchJSON('/api/notifications/read-all', {
+                method: 'POST'
+            });
+            await loadNotifications();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (panel.classList.contains('hidden')) {
+                return;
+            }
+
+            if (panel.contains(event.target) || bellButton.contains(event.target)) {
+                return;
+            }
+
+            panel.classList.add('hidden');
+        });
+
+        loadNotifications();
+    };
+
+    const formatNotificationTime = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        return new Intl.DateTimeFormat('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        }).format(new Date(value));
+    };
+
+    setupNotifications();
 
     // Left Sidebar Toggle Functionality
     const toggleBtn = document.getElementById('toggle-sidebar');

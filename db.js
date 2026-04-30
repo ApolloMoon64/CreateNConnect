@@ -154,6 +154,23 @@ function mapCommunityMessage(row) {
     };
 }
 
+function mapNotification(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        userId: row.user_id,
+        actorUserId: row.actor_user_id,
+        title: row.title,
+        body: row.body,
+        linkUrl: row.link_url,
+        readAt: row.read_at instanceof Date ? row.read_at.toISOString() : row.read_at,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
 async function initializeDatabase() {
     const bootstrapPool = mysql.createPool(basePoolConfig);
 
@@ -351,6 +368,53 @@ async function initializeDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS purchases (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            buyer_user_id BIGINT UNSIGNED NOT NULL,
+            seller_user_id BIGINT UNSIGNED NOT NULL,
+            item_type VARCHAR(40) NOT NULL,
+            item_id BIGINT UNSIGNED NOT NULL,
+            item_title VARCHAR(160) NOT NULL,
+            amount DECIMAL(10, 2) NULL,
+            buyer_name VARCHAR(160) NOT NULL,
+            buyer_email VARCHAR(190) NOT NULL,
+            note TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY purchases_buyer_user_id_index (buyer_user_id),
+            KEY purchases_seller_user_id_index (seller_user_id),
+            CONSTRAINT purchases_buyer_user_id_fk
+                FOREIGN KEY (buyer_user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            CONSTRAINT purchases_seller_user_id_fk
+                FOREIGN KEY (seller_user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS notifications (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            actor_user_id BIGINT UNSIGNED NULL,
+            title VARCHAR(180) NOT NULL,
+            body TEXT NOT NULL,
+            link_url VARCHAR(255) NOT NULL DEFAULT '',
+            read_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY notifications_user_id_index (user_id, read_at, id),
+            KEY notifications_actor_user_id_index (actor_user_id),
+            CONSTRAINT notifications_user_id_fk
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            CONSTRAINT notifications_actor_user_id_fk
+                FOREIGN KEY (actor_user_id) REFERENCES users(id)
+                ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     const [tutorialColumns] = await pool.query(`
         SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS
@@ -473,6 +537,119 @@ async function listAllCommissions() {
     );
 
     return rows.map(mapCommission);
+}
+
+async function getPurchasableItem(itemType, itemId) {
+    const normalizedType = String(itemType || "").trim().toLowerCase();
+    const tableConfig = {
+        commission: {
+            sql: `SELECT id, user_id, title, price, 'commission' AS item_type FROM commissions WHERE id = ? LIMIT 1`
+        },
+        post: {
+            sql: `SELECT id, user_id, title, NULL AS price, 'post' AS item_type FROM posts WHERE id = ? LIMIT 1`
+        },
+        portfolio: {
+            sql: `SELECT id, user_id, title, NULL AS price, 'portfolio' AS item_type FROM portfolio_items WHERE id = ? LIMIT 1`
+        },
+        tutorial: {
+            sql: `SELECT id, user_id, title, NULL AS price, 'tutorial' AS item_type FROM tutorials WHERE id = ? LIMIT 1`
+        }
+    };
+
+    const config = tableConfig[normalizedType];
+    if (!config) {
+        return null;
+    }
+
+    const [rows] = await pool.query(config.sql, [itemId]);
+    const row = rows[0];
+
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        userId: row.user_id,
+        title: row.title,
+        price: row.price === null || row.price === undefined ? null : Number(row.price),
+        itemType: row.item_type
+    };
+}
+
+async function createPurchase({ buyerUserId, sellerUserId, itemType, itemId, itemTitle, amount, buyerName, buyerEmail, note }) {
+    const [result] = await pool.query(
+        `INSERT INTO purchases
+            (buyer_user_id, seller_user_id, item_type, item_id, item_title, amount, buyer_name, buyer_email, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [buyerUserId, sellerUserId, itemType, itemId, itemTitle, amount, buyerName, buyerEmail, note]
+    );
+
+    return {
+        id: result.insertId,
+        buyerUserId,
+        sellerUserId,
+        itemType,
+        itemId,
+        itemTitle,
+        amount,
+        buyerName,
+        buyerEmail,
+        note
+    };
+}
+
+async function createNotification({ userId, actorUserId, title, body, linkUrl = "" }) {
+    const [result] = await pool.query(
+        `INSERT INTO notifications (user_id, actor_user_id, title, body, link_url)
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, actorUserId || null, title, body, linkUrl]
+    );
+
+    const [rows] = await pool.query(
+        `SELECT id, user_id, actor_user_id, title, body, link_url, read_at, created_at
+         FROM notifications
+         WHERE id = ?
+         LIMIT 1`,
+        [result.insertId]
+    );
+
+    return mapNotification(rows[0]);
+}
+
+async function listNotificationsForUser(userId) {
+    const [rows] = await pool.query(
+        `SELECT id, user_id, actor_user_id, title, body, link_url, read_at, created_at
+         FROM notifications
+         WHERE user_id = ?
+         ORDER BY id DESC
+         LIMIT 30`,
+        [userId]
+    );
+
+    return rows.map(mapNotification);
+}
+
+async function markNotificationRead({ userId, notificationId }) {
+    const [result] = await pool.query(
+        `UPDATE notifications
+         SET read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+         WHERE id = ?
+           AND user_id = ?`,
+        [notificationId, userId]
+    );
+
+    return result.affectedRows > 0;
+}
+
+async function markAllNotificationsRead(userId) {
+    await pool.query(
+        `UPDATE notifications
+         SET read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+         WHERE user_id = ?
+           AND read_at IS NULL`,
+        [userId]
+    );
 }
 
 
@@ -807,9 +984,11 @@ async function createCommunityMessage({ userId, communityId, body }) {
 module.exports = {
     createCommunity,
     createCommunityMessage,
+    createNotification,
     createPortfolioItem,
     createCommission,
     createPost,
+    createPurchase,
     createTutorial,
     createUser,
     deleteCommissionById,
@@ -819,17 +998,21 @@ module.exports = {
     deleteUserById,
     findUserByEmail,
     getUserById,
+    getPurchasableItem,
     getCommunityById,
     healthCheck,
     initializeDatabase,
     listAllCommissions,
     listCommunitiesForUser,
     listCommunityMessages,
+    listNotificationsForUser,
     listCommissionsByUserId,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
     joinCommunity,
+    markAllNotificationsRead,
+    markNotificationRead,
     pool,
     updateUserPasswordHash,
     updateUserProfile

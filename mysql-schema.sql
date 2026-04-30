@@ -122,3 +122,46 @@ CREATE TABLE IF NOT EXISTS community_messages (
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS purchases (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  buyer_user_id BIGINT UNSIGNED NOT NULL,
+  seller_user_id BIGINT UNSIGNED NOT NULL,
+  item_type VARCHAR(40) NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
+  item_title VARCHAR(160) NOT NULL,
+  amount DECIMAL(10,2) NULL,
+  buyer_name VARCHAR(160) NOT NULL,
+  buyer_email VARCHAR(190) NOT NULL,
+  note TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY purchases_buyer_user_id_index (buyer_user_id),
+  KEY purchases_seller_user_id_index (seller_user_id),
+  CONSTRAINT purchases_buyer_user_id_fk
+    FOREIGN KEY (buyer_user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  CONSTRAINT purchases_seller_user_id_fk
+    FOREIGN KEY (seller_user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  actor_user_id BIGINT UNSIGNED NULL,
+  title VARCHAR(180) NOT NULL,
+  body TEXT NOT NULL,
+  link_url VARCHAR(255) NOT NULL DEFAULT '',
+  read_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY notifications_user_id_index (user_id, read_at, id),
+  KEY notifications_actor_user_id_index (actor_user_id),
+  CONSTRAINT notifications_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  CONSTRAINT notifications_actor_user_id_fk
+    FOREIGN KEY (actor_user_id) REFERENCES users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
