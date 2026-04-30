@@ -738,3 +738,11 @@ label {
 [data-theme="dark"]{
     --bg-color-1:#000000;
 }
+
+[data-theme="dark"] .nav-caption {
+    color: #ffffff;
+}
+
+[data-theme="light"] .nav-caption {
+    color: #000000;
+}
