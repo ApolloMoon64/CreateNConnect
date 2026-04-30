@@ -83,7 +83,10 @@
                       <p class="profile-handle-label">Creator Profile</p>
                       <h1 class="profile-name-large" data-profile-name>Username</h1>
                     </div>
-                    <button id="profile-edit-btn" class="profile-edit-btn" type="button">Edit Profile</button>
+                    <div class="profile-headline-actions">
+                      <button id="profile-follow-btn" class="profile-edit-btn profile-follow-btn" type="button" hidden>Follow</button>
+                      <button id="profile-edit-btn" class="profile-edit-btn" type="button">Edit Profile</button>
+                    </div>
                   </div>
 
                   <div class="profile-bio-card glass-panel-lite">
@@ -109,6 +112,14 @@
                         <span class="stat-value">Open</span>
                         <span class="stat-label">Commissions</span>
                       </div>
+                      <button class="stat-row stat-row-button" type="button" data-follow-list="followers">
+                        <span class="stat-value" data-followers-count>0</span>
+                        <span class="stat-label">Followers</span>
+                      </button>
+                      <button class="stat-row stat-row-button" type="button" data-follow-list="following">
+                        <span class="stat-value" data-following-count>0</span>
+                        <span class="stat-label">Following</span>
+                      </button>
                     </div>
 
                     <div class="profile-side-block">
@@ -129,6 +140,17 @@
               </section>
 
               <section class="profile-tabs-panel">
+                <section id="follow-list-panel" class="follow-list-panel glass-panel-lite is-hidden" aria-live="polite">
+                  <div class="follow-list-header">
+                    <div>
+                      <p class="content-card-kicker">Social</p>
+                      <h3 id="follow-list-title" class="content-card-title">Following</h3>
+                    </div>
+                    <button class="btn btn-secondary" id="follow-list-close" type="button">Close</button>
+                  </div>
+                  <div id="follow-list" class="follow-list"></div>
+                </section>
+
                 <div class="profile-tabs" role="tablist" aria-label="Profile sections">
                   <button class="tab-btn active" type="button" data-profile-tab="posts" aria-selected="true">Posts</button>
                   <button class="tab-btn" type="button" data-profile-tab="commissions" aria-selected="false">Commission</button>

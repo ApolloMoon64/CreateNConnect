@@ -1164,6 +1164,13 @@ a {
     margin-bottom: 1rem;
 }
 
+.profile-headline-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .profile-handle-label {
     font-size: 0.8rem;
     text-transform: uppercase;
@@ -1188,6 +1195,18 @@ a {
     font-family: inherit;
     cursor: pointer;
     white-space: nowrap;
+}
+
+.profile-follow-btn {
+    color: white;
+    background: var(--accent-color);
+    border-color: transparent;
+}
+
+.profile-follow-btn.is-following {
+    color: var(--accent-color);
+    background: rgba(219, 234, 254, 0.92);
+    border-color: rgba(37, 99, 235, 0.18);
 }
 
 .profile-bio-card {
@@ -1250,6 +1269,83 @@ a {
 .profile-action-btn-danger {
     color: white;
     background: #b91c1c;
+}
+
+.stat-row-button {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.stat-row-button:hover .stat-value,
+.stat-row-button:hover .stat-label {
+    color: var(--accent-color);
+}
+
+.follow-list-panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.15rem;
+    border-radius: var(--border-radius-lg);
+}
+
+.follow-list-panel.is-hidden {
+    display: none;
+}
+
+.follow-list-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.follow-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.follow-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.follow-list-item:hover {
+    border-color: rgba(37, 99, 235, 0.32);
+    transform: translateY(-1px);
+}
+
+.follow-list-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.follow-list-item span:last-child {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.follow-list-item small {
+    color: var(--text-secondary);
 }
 
 .profile-tabs-panel {

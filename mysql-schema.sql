@@ -165,3 +165,17 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (actor_user_id) REFERENCES users(id)
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_follows (
+  follower_user_id BIGINT UNSIGNED NOT NULL,
+  following_user_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (follower_user_id, following_user_id),
+  KEY user_follows_following_user_id_index (following_user_id),
+  CONSTRAINT user_follows_follower_user_id_fk
+    FOREIGN KEY (follower_user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  CONSTRAINT user_follows_following_user_id_fk
+    FOREIGN KEY (following_user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -171,6 +171,20 @@ function mapNotification(row) {
     };
 }
 
+function mapFollowUser(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        bio: row.bio,
+        joinedAt: row.joined_at instanceof Date ? row.joined_at.toISOString() : row.joined_at
+    };
+}
+
 async function initializeDatabase() {
     const bootstrapPool = mysql.createPool(basePoolConfig);
 
@@ -415,6 +429,22 @@ async function initializeDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_follows (
+            follower_user_id BIGINT UNSIGNED NOT NULL,
+            following_user_id BIGINT UNSIGNED NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (follower_user_id, following_user_id),
+            KEY user_follows_following_user_id_index (following_user_id),
+            CONSTRAINT user_follows_follower_user_id_fk
+                FOREIGN KEY (follower_user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            CONSTRAINT user_follows_following_user_id_fk
+                FOREIGN KEY (following_user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     const [tutorialColumns] = await pool.query(`
         SELECT COLUMN_NAME
         FROM INFORMATION_SCHEMA.COLUMNS
@@ -650,6 +680,89 @@ async function markAllNotificationsRead(userId) {
            AND read_at IS NULL`,
         [userId]
     );
+}
+
+async function getFollowSummary({ userId, viewerUserId = null }) {
+    const [followersResult, followingResult, viewerResult] = await Promise.all([
+        pool.query(
+            `SELECT COUNT(*) AS count
+             FROM user_follows
+             WHERE following_user_id = ?`,
+            [userId]
+        ),
+        pool.query(
+            `SELECT COUNT(*) AS count
+             FROM user_follows
+             WHERE follower_user_id = ?`,
+            [userId]
+        ),
+        viewerUserId
+            ? pool.query(
+                `SELECT 1
+                 FROM user_follows
+                 WHERE follower_user_id = ?
+                   AND following_user_id = ?
+                 LIMIT 1`,
+                [viewerUserId, userId]
+            )
+            : Promise.resolve([[]])
+    ]);
+    const [followersRows] = followersResult;
+    const [followingRows] = followingResult;
+    const [viewerRows] = viewerResult;
+
+    return {
+        followersCount: Number(followersRows[0]?.count || 0),
+        followingCount: Number(followingRows[0]?.count || 0),
+        isFollowing: viewerRows.length > 0
+    };
+}
+
+async function followUser({ followerUserId, followingUserId }) {
+    const [result] = await pool.query(
+        `INSERT IGNORE INTO user_follows (follower_user_id, following_user_id)
+         VALUES (?, ?)`,
+        [followerUserId, followingUserId]
+    );
+
+    return result.affectedRows > 0;
+}
+
+async function unfollowUser({ followerUserId, followingUserId }) {
+    const [result] = await pool.query(
+        `DELETE FROM user_follows
+         WHERE follower_user_id = ?
+           AND following_user_id = ?`,
+        [followerUserId, followingUserId]
+    );
+
+    return result.affectedRows > 0;
+}
+
+async function listFollowers(userId) {
+    const [rows] = await pool.query(
+        `SELECT users.id, users.name, users.email, users.bio, users.joined_at
+         FROM user_follows
+         INNER JOIN users ON users.id = user_follows.follower_user_id
+         WHERE user_follows.following_user_id = ?
+         ORDER BY user_follows.created_at DESC`,
+        [userId]
+    );
+
+    return rows.map(mapFollowUser);
+}
+
+async function listFollowing(userId) {
+    const [rows] = await pool.query(
+        `SELECT users.id, users.name, users.email, users.bio, users.joined_at
+         FROM user_follows
+         INNER JOIN users ON users.id = user_follows.following_user_id
+         WHERE user_follows.follower_user_id = ?
+         ORDER BY user_follows.created_at DESC`,
+        [userId]
+    );
+
+    return rows.map(mapFollowUser);
 }
 
 
@@ -997,6 +1110,8 @@ module.exports = {
     deleteTutorialById,
     deleteUserById,
     findUserByEmail,
+    followUser,
+    getFollowSummary,
     getUserById,
     getPurchasableItem,
     getCommunityById,
@@ -1007,6 +1122,8 @@ module.exports = {
     listCommunityMessages,
     listNotificationsForUser,
     listCommissionsByUserId,
+    listFollowers,
+    listFollowing,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
@@ -1014,6 +1131,7 @@ module.exports = {
     markAllNotificationsRead,
     markNotificationRead,
     pool,
+    unfollowUser,
     updateUserPasswordHash,
     updateUserProfile
 };

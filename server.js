@@ -20,7 +20,9 @@ const {
     deleteTutorialById,
     deleteUserById,
     findUserByEmail,
+    followUser,
     getCommunityById,
+    getFollowSummary,
     getPurchasableItem,
     getUserById,
     healthCheck,
@@ -30,12 +32,15 @@ const {
     listCommunityMessages,
     listNotificationsForUser,
     listCommissionsByUserId,
+    listFollowers,
+    listFollowing,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
     joinCommunity,
     markAllNotificationsRead,
     markNotificationRead,
+    unfollowUser,
     updateUserPasswordHash,
     updateUserProfile
 } = require("./db");
@@ -757,6 +762,131 @@ async function handleRequest(req, res) {
             });
 
             sendJSON(res, 201, { message });
+            return;
+        }
+
+        if (req.method === "GET" && pathname.match(/^\/api\/users\/[^/]+\/follow-summary$/)) {
+            const userId = pathname.split("/")[3];
+            const user = await getUserById(userId);
+
+            if (!user) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            const viewer = await getAuthenticatedUser(req);
+            const summary = await getFollowSummary({
+                userId,
+                viewerUserId: viewer?.id || null
+            });
+
+            sendJSON(res, 200, { summary });
+            return;
+        }
+
+        if (req.method === "GET" && pathname.match(/^\/api\/users\/[^/]+\/followers$/)) {
+            const userId = pathname.split("/")[3];
+            const user = await getUserById(userId);
+
+            if (!user) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            const followers = await listFollowers(userId);
+            sendJSON(res, 200, { followers });
+            return;
+        }
+
+        if (req.method === "GET" && pathname.match(/^\/api\/users\/[^/]+\/following$/)) {
+            const userId = pathname.split("/")[3];
+            const user = await getUserById(userId);
+
+            if (!user) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            const following = await listFollowing(userId);
+            sendJSON(res, 200, { following });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/users\/[^/]+\/follow$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const userId = pathname.split("/")[3];
+
+            if (String(authenticatedUser.id) === String(userId)) {
+                sendJSON(res, 400, { error: "You cannot follow yourself." });
+                return;
+            }
+
+            const targetUser = await getUserById(userId);
+            if (!targetUser) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            const created = await followUser({
+                followerUserId: authenticatedUser.id,
+                followingUserId: userId
+            });
+
+            if (created) {
+                await createNotification({
+                    userId,
+                    actorUserId: authenticatedUser.id,
+                    title: "New follower",
+                    body: `${authenticatedUser.name} started following you.`,
+                    linkUrl: `profile.html?userId=${encodeURIComponent(authenticatedUser.id)}`
+                });
+            }
+
+            const summary = await getFollowSummary({
+                userId,
+                viewerUserId: authenticatedUser.id
+            });
+
+            sendJSON(res, 200, { summary });
+            return;
+        }
+
+        if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/follow$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const userId = pathname.split("/")[3];
+
+            if (String(authenticatedUser.id) === String(userId)) {
+                sendJSON(res, 400, { error: "You cannot unfollow yourself." });
+                return;
+            }
+
+            const targetUser = await getUserById(userId);
+            if (!targetUser) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            await unfollowUser({
+                followerUserId: authenticatedUser.id,
+                followingUserId: userId
+            });
+
+            const summary = await getFollowSummary({
+                userId,
+                viewerUserId: authenticatedUser.id
+            });
+
+            sendJSON(res, 200, { summary });
             return;
         }
 

@@ -51,6 +51,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const tutorialResetButton = document.getElementById("tutorial-form-reset");
     const portfolioCloseButton = document.getElementById("portfolio-form-close");
     const tutorialCloseButton = document.getElementById("tutorial-form-close");
+    const followButton = document.getElementById("profile-follow-btn");
+    const followersCountTarget = document.querySelector("[data-followers-count]");
+    const followingCountTarget = document.querySelector("[data-following-count]");
+    const followListPanel = document.getElementById("follow-list-panel");
+    const followListTitle = document.getElementById("follow-list-title");
+    const followList = document.getElementById("follow-list");
+    const followListClose = document.getElementById("follow-list-close");
+    const followListButtons = document.querySelectorAll("[data-follow-list]");
 
     if (!currentUserRaw && !profileUserId) {
         window.location.href = "auth.html";
@@ -99,6 +107,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         return data;
     };
+
+    const escapeHtml = (value) => String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
 
     if (currentUser) {
         try {
@@ -653,10 +668,121 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderTutorials(data.tutorials || []);
     };
 
+    const renderFollowSummary = (summary) => {
+        if (followersCountTarget) {
+            followersCountTarget.textContent = summary.followersCount;
+        }
+
+        if (followingCountTarget) {
+            followingCountTarget.textContent = summary.followingCount;
+        }
+
+        if (!followButton) {
+            return;
+        }
+
+        const canFollow = Boolean(signedInUser) && !isOwnProfile;
+        followButton.hidden = !canFollow;
+        followButton.disabled = false;
+
+        if (!canFollow) {
+            return;
+        }
+
+        followButton.textContent = summary.isFollowing ? "Following" : "Follow";
+        followButton.classList.toggle("is-following", summary.isFollowing);
+        followButton.dataset.following = String(summary.isFollowing);
+    };
+
+    const loadFollowSummary = async () => {
+        const data = await apiFetchJSON(`/api/users/${targetUserId}/follow-summary`);
+        renderFollowSummary(data.summary);
+        return data.summary;
+    };
+
+    const renderFollowList = (users, emptyCopy) => {
+        if (!followList) {
+            return;
+        }
+
+        if (!users.length) {
+            followList.innerHTML = `<p class="muted-copy">${emptyCopy}</p>`;
+            return;
+        }
+
+        followList.innerHTML = users.map((user) => `
+            <a class="follow-list-item" href="profile.html?userId=${encodeURIComponent(user.id)}">
+                <span class="follow-list-avatar">${escapeHtml(
+                    user.name
+                        .split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0].toUpperCase())
+                        .join("")
+                )}</span>
+                <span>
+                    <strong>${escapeHtml(user.name)}</strong>
+                    <small>${escapeHtml(user.email)}</small>
+                </span>
+            </a>
+        `).join("");
+    };
+
+    const openFollowList = async (type) => {
+        if (!followListPanel || !followListTitle || !followList) {
+            return;
+        }
+
+        const isFollowers = type === "followers";
+        followListTitle.textContent = isFollowers ? "Followers" : "Following";
+        followList.innerHTML = '<p class="muted-copy">Loading...</p>';
+        followListPanel.classList.remove("is-hidden");
+
+        try {
+            const data = await apiFetchJSON(`/api/users/${targetUserId}/${isFollowers ? "followers" : "following"}`);
+            renderFollowList(
+                isFollowers ? data.followers || [] : data.following || [],
+                isFollowers ? "No followers yet." : "Not following anyone yet."
+            );
+        } catch (error) {
+            followList.innerHTML = `<p class="muted-copy">${escapeHtml(error.message)}</p>`;
+        }
+    };
+
     tabButtons.forEach((button) => {
         button.addEventListener("click", () => {
             setActiveTab(button.dataset.profileTab);
         });
+    });
+
+    followButton?.addEventListener("click", async () => {
+        if (!signedInUser) {
+            window.location.href = "auth.html";
+            return;
+        }
+
+        const isFollowing = followButton.dataset.following === "true";
+        followButton.disabled = true;
+
+        try {
+            const data = await apiFetchJSON(`/api/users/${targetUserId}/follow`, {
+                method: isFollowing ? "DELETE" : "POST"
+            });
+            renderFollowSummary(data.summary);
+        } catch (error) {
+            followButton.disabled = false;
+            window.alert(error.message);
+        }
+    });
+
+    followListButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            openFollowList(button.dataset.followList);
+        });
+    });
+
+    followListClose?.addEventListener("click", () => {
+        hidePanel(followListPanel);
     });
 
     bindDynamicAddButtons();
@@ -1358,7 +1484,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         hidePanel(tutorialFormPanel);
         hidePanel(portfolioFormPanel);
         hideOwnerControls();
-        await Promise.all([loadPosts(), loadCommissions(), loadTutorials(), loadPortfolio()]);
+        await Promise.all([loadFollowSummary(), loadPosts(), loadCommissions(), loadTutorials(), loadPortfolio()]);
     } catch (error) {
         if (!profileUserId) {
             localStorage.removeItem("currentUser");
