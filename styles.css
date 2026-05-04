@@ -1776,3 +1776,10 @@ a {
 [data-theme="dark"]{
     --bg-color-1:#000000;
 }
+
+    .glow-success {
+        border: 2px solid #10b981 !important;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.1) !important;
+        transition: all 0.3s ease;
+    }
