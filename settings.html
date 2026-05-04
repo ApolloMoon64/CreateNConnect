@@ -38,7 +38,7 @@
                 <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i>
                     Commissions</a>
                 <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
-                <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Profile</a>
+                <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Sign up / Log In</a>
                 <a href="settings.html" class="nav-item active"><i class="ph ph-gear"></i> Settings</a>
             </div>
 
@@ -91,27 +91,37 @@
                     
                     <main class="settings-content">
                         <section class="account-settings">
-                            <h2>Account Information</h2>
-                            <h3>
-                            <form action="#" method="POST">
-                                <div class="setting-item">
-                                    <label for="username">Username:</label>
-                                    <input type="text" id="username" name="username" value="johndoe" required>
-                                </div>
-                                <div class="setting-item">
-                                    <label for="email">Email Address:</label>
-                                    <input type="email" id="email" name="email" value="john@example.com" required>
-                                </div>
-                                <div class="setting-item">
-                                    <label for="phone">Phone Number:</label>
-                                    <input type="text" id="phone" name="phone" value="1234567890" required>
-                                </div>
-                            </h3>
-                                <div style="margin-bottom:20px;">
-                                    <button class="btn btn-primary" id="account-info" type="button"> Save Account Info</button>
-                                </div>
-                            </form>
-                        </section>
+    <h2>Security</h2>
+    <div class="setting-item">
+        <h3>If you forgot your password, click the button below to reset it.</h3>
+        <button class="btn btn-primary" id="change-password-btn" type="button">
+            Change Password
+        </button>
+    </div>
+    <div id="password-confirmation" style="display: none; margin-top: 15px; padding: 10px; background: rgba(37, 99, 235, 0.1); border-radius: 8px; border-left: 4px solid var(--accent-color);">
+        <p style="margin: 0; color: var(--text-color); font-size: 0.9rem;">
+            <i class="ph ph-envelope-simple" style="vertical-align: middle; margin-right: 5px;"></i>
+            An email has been sent to your registered email address with instructions to change your password.
+        </p>
+    </div>
+</section>
+
+<script>
+    document.getElementById('change-password-btn').addEventListener('click', function() {
+        const btn = this;
+        const confirmationBox = document.getElementById('password-confirmation');
+
+        // 1. Style the button to look "saved"
+        btn.innerText = 'Email Sent';
+        btn.style.backgroundColor = "#10b981"; 
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+
+        // 2. Show the confirmation box with the green glow class
+        confirmationBox.style.display = 'block';
+        confirmationBox.classList.add('glow-success');[cite, 1]
+    });
+</script>
 
                         
                     <!--NOTIFICATION SETTINGS-->
@@ -120,21 +130,21 @@
                         <h3>
                         <form action="#" method="POST">
                             <div class="setting-item">
-                                <input type="checkbox" id="email-notify" name="email-notify">
-                                <label for="email-notify">Receive email notifications</label>
-                            </div>
-                            <div class="setting-item">
-                                <input type="checkbox" id="push-notify" name="push-notify">
-                                <label for="push-notify">Enable push notifications</label>
-                            </div>
-                            <div class="setting-item">
-                                <input type="checkbox" id="art-updates" name="art-updates">
-                                <label for="art-updates">Receive updates on new art and artists</label>
-                            </div>
-                            <div class="setting-item">
-                                <input type="checkbox" id="event-notify" name="event-notify">
-                                <label for="event-notify">Notify me about upcoming art events</label>
-                            </div>
+    <input type="checkbox" id="email-notify" name="email-notify" checked>
+    <label for="email-notify">Receive email notifications</label>
+</div>
+<div class="setting-item">
+    <input type="checkbox" id="push-notify" name="push-notify" checked>
+    <label for="push-notify">Enable push notifications</label>
+</div>
+<div class="setting-item">
+    <input type="checkbox" id="art-updates" name="art-updates" checked>
+    <label for="art-updates">Receive updates on new art and artists</label>
+</div>
+<div class="setting-item">
+    <input type="checkbox" id="event-notify" name="event-notify" checked>
+    <label for="event-notify">Notify me about upcoming art events</label>
+</div>
                             <button class="btn btn-primary" id="noti-settings" type="button"> Save Notification Settings</button>
                         </form>
                         </h3>
@@ -156,21 +166,7 @@
                         </h3>
                     </section>
 
-                    <!--CONTENT PREFERENCES-->
-                    <section class="content-preferences">
-                        <h2>Content Preferences</h2>
-                        <h3> Select the types of content you want to see:</h3>
-                        <div class="btn btn" style="display: flex; flex-direction:column">
-                            <label><input type="checkbox" name="content-pref" value="digital-art"> Digital Art</label>
-                            <label><input type="checkbox" name="content-pref" value="pottery"> Pottery</label>
-                            <label><input type="checkbox" name="content-pref" value="jewelry"> Jewelry</label>
-                            <label><input type="checkbox" name="content-pref" value="music"> Music</label>
-                            <label><input type="checkbox" name="content-pref" value="crochet"> Crochet</label>
-                        </div>
-
-                        <button class="btn btn-primary" id="content-prefs" type="button"> Save Content Preferences</button>
-                        </form>
-                        </h3>
+                    
 
 
 
@@ -189,3 +185,36 @@
 </body>
 
 </html>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const saveBtn = document.getElementById('noti-settings');
+    const checkboxes = document.querySelectorAll('.notification-settings input[type="checkbox"]');
+
+    // --- LOAD SAVED SETTINGS ---
+    checkboxes.forEach(checkbox => {
+        const savedValue = localStorage.getItem(checkbox.id);
+        if (savedValue !== null) {
+            // If we have a saved preference, override the default "checked"
+            checkbox.checked = (savedValue === 'true');
+        }
+    });
+
+    // --- SAVE ON BUTTON CLICK ---
+    saveBtn.addEventListener('click', () => {
+        checkboxes.forEach(checkbox => {
+            localStorage.setItem(checkbox.id, checkbox.checked);
+        });
+
+        // Visual feedback
+        const originalText = saveBtn.innerText;
+        saveBtn.innerText = "Settings Saved!";
+        saveBtn.style.backgroundColor = "#10b981"; // Change to a green success color
+
+        setTimeout(() => {
+            saveBtn.innerText = originalText;
+            saveBtn.style.backgroundColor = ""; 
+        }, 2000);
+    });
+});
+</script>
