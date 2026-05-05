@@ -44,6 +44,9 @@ let meetings = readStorage(meetingStorageKey, defaultMeetings);
 let currentUser = getCurrentUser();
 let selectedRegion = 'All';
 let activeCommunityId = null;
+let messagePollTimer = null;
+let messagePollInFlight = false;
+const messagePollIntervalMs = 3000;
 
 function saveCurrentUser(user) {
   const { profileImage, ...storageUser } = user || {};
@@ -145,7 +148,7 @@ function bindEvents() {
 
       renderCommunities();
       renderGroups();
-      renderChat();
+      renderChat({ scrollToBottom: true });
       chatForm.reset();
     } catch (error) {
       window.alert(error.message);
@@ -229,8 +232,10 @@ async function initializeConnectPage() {
     currentUser = sessionData.user;
     saveCurrentUser(currentUser);
     await loadCommunities();
+    startMessagePolling();
     setCommunityFormsEnabled(true);
   } catch (error) {
+    stopMessagePolling();
     communities = [];
     activeCommunityId = null;
     localStorage.removeItem('currentUser');
@@ -266,14 +271,63 @@ async function loadCommunities() {
 
 async function loadActiveCommunityMessages() {
   const activeCommunity = communities.find((community) => String(community.id) === String(activeCommunityId));
-  if (!activeCommunity || !activeCommunity.joined) return;
+  if (!activeCommunity || !activeCommunity.joined) return false;
 
   const data = await apiFetchJSON(`/api/communities/${encodeURIComponent(activeCommunityId)}/messages`);
+  const currentMessages = activeCommunity.messages || [];
+  const currentSignature = currentMessages.map((message) => `${message.id}:${message.createdAt}`).join('|');
+  const nextSignature = data.messages.map((message) => `${message.id}:${message.createdAt}`).join('|');
+
   communities = communities.map((community) =>
     String(community.id) === String(activeCommunityId)
       ? { ...community, messages: data.messages, messageCount: data.messages.length }
       : community
   );
+
+  return currentSignature !== nextSignature;
+}
+
+function startMessagePolling() {
+  stopMessagePolling();
+
+  messagePollTimer = window.setInterval(pollActiveCommunityMessages, messagePollIntervalMs);
+}
+
+function stopMessagePolling() {
+  if (!messagePollTimer) {
+    return;
+  }
+
+  window.clearInterval(messagePollTimer);
+  messagePollTimer = null;
+}
+
+async function pollActiveCommunityMessages() {
+  if (messagePollInFlight || document.visibilityState === 'hidden' || !activeCommunityId || !currentUser?.id) {
+    return;
+  }
+
+  const activeCommunity = communities.find((community) => String(community.id) === String(activeCommunityId));
+  if (!activeCommunity?.joined) {
+    return;
+  }
+
+  messagePollInFlight = true;
+
+  try {
+    const wasNearBottom = chatThread.scrollHeight - chatThread.scrollTop - chatThread.clientHeight < 80;
+    const changed = await loadActiveCommunityMessages();
+
+    if (changed) {
+      renderCommunities();
+      renderGroups();
+      renderChat({ scrollToBottom: wasNearBottom });
+    }
+  } catch (error) {
+    // Polling should stay quiet; manual actions still show request errors.
+  } finally {
+    messagePollInFlight = false;
+  }
 }
 
 async function readResponsePayload(response) {
@@ -370,7 +424,7 @@ function renderCommunities() {
       chatThread.innerHTML = '<p class="muted-copy">Loading messages...</p>';
       await loadActiveCommunityMessages();
       renderCommunities();
-      renderChat();
+      renderChat({ scrollToBottom: true });
     });
 
     card.appendChild(button);
@@ -423,7 +477,7 @@ function renderGroups() {
         await loadActiveCommunityMessages();
         renderCommunities();
         renderGroups();
-        renderChat();
+        renderChat({ scrollToBottom: true });
       } catch (error) {
         window.alert(error.message);
       }
@@ -434,7 +488,7 @@ function renderGroups() {
   });
 }
 
-function renderChat() {
+function renderChat({ scrollToBottom = false } = {}) {
   const activeCommunity = communities.find((community) => String(community.id) === String(activeCommunityId));
 
   if (!activeCommunity || (selectedRegion !== 'All' && activeCommunity.region !== selectedRegion)) {
@@ -460,6 +514,10 @@ function renderChat() {
     `;
     chatThread.appendChild(bubble);
   });
+
+  if (scrollToBottom) {
+    chatThread.scrollTop = chatThread.scrollHeight;
+  }
 }
 
 function renderMeetings() {
