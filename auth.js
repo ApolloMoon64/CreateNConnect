@@ -47,8 +47,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         setMessage("");
     };
 
+    const showResetSuccessLogin = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get("reset") !== "success") {
+            return;
+        }
+
+        setActiveTab("login");
+
+        const loginEmail = localStorage.getItem("passwordResetLoginEmail") || "";
+        const loginEmailInput = document.getElementById("login-email");
+
+        if (loginEmail && loginEmailInput) {
+            loginEmailInput.value = loginEmail;
+            localStorage.removeItem("passwordResetLoginEmail");
+        }
+
+        setMessage("Password updated. Log in with your registered account email and new password.", "success");
+    };
+
     const saveUser = (user) => {
-        localStorage.setItem("currentUser", JSON.stringify(user));
+        const { profileImage, ...storageUser } = user || {};
+        localStorage.setItem("currentUser", JSON.stringify(storageUser));
     };
 
     const clearUser = () => {
@@ -159,6 +180,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!currentUser) {
         clearUser();
+        showResetSuccessLogin();
         return;
     }
 
@@ -175,5 +197,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
         clearUser();
         setSignedInState(null);
+        showResetSuccessLogin();
     }
 });

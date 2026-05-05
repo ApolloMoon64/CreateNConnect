@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setMessage("Updating password...", "info");
 
         try {
-            await apiFetchJSON("/api/auth/password-reset-complete", {
+            const result = await apiFetchJSON("/api/auth/password-reset-complete", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -73,11 +73,19 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             localStorage.removeItem("currentUser");
-            setMessage("Password updated. You can now log in with your new password.", "success");
+            if (result.email) {
+                localStorage.setItem("passwordResetLoginEmail", result.email);
+            }
+
+            setMessage("Password updated. Sending you back to log in with your new password.", "success");
             form.reset();
             form.querySelectorAll("input, button").forEach((control) => {
                 control.disabled = true;
             });
+
+            setTimeout(() => {
+                window.location.href = "auth.html?reset=success";
+            }, 1200);
         } catch (error) {
             setMessage(error.message, "error");
         }

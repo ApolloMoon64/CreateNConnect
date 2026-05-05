@@ -58,6 +58,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         return data;
     };
 
+    const saveCurrentUser = (user) => {
+        const { profileImage, ...storageUser } = user || {};
+        localStorage.setItem("currentUser", JSON.stringify(storageUser));
+    };
+
     try {
         const sessionData = await apiFetchJSON("/api/auth/me");
 
@@ -65,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             throw new Error("Signed in account changed.");
         }
 
-        localStorage.setItem("currentUser", JSON.stringify(sessionData.user));
+        saveCurrentUser(sessionData.user);
     } catch (error) {
         localStorage.removeItem("currentUser");
         window.location.href = "auth.html";

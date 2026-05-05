@@ -77,6 +77,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const targetUserId = profileUserId || currentUser?.id;
     let isOwnProfile = false;
 
+    const saveCurrentUser = (user) => {
+        const { profileImage, ...storageUser } = user || {};
+        localStorage.setItem("currentUser", JSON.stringify(storageUser));
+    };
+
     const setActiveTab = (tabName) => {
         tabButtons.forEach((button) => {
             const isActive = button.dataset.profileTab === tabName;
@@ -150,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             signedInUser = sessionData.user;
             currentUser = sessionData.user;
             isOwnProfile = String(signedInUser.id) === String(targetUserId);
-            localStorage.setItem("currentUser", JSON.stringify(sessionData.user));
+            saveCurrentUser(sessionData.user);
         } catch (error) {
             localStorage.removeItem("currentUser");
 
@@ -1462,7 +1467,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     profileImageUrl = saveData.user.profileImage || oldLocalImage;
                     currentUser = saveData.user;
                     signedInUser = saveData.user;
-                    localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+                    saveCurrentUser(saveData.user);
                     localStorage.removeItem(`profileImage_${targetUserId}`);
                 } catch (error) {
                     // Keep showing the local image if the migration cannot save yet.
@@ -1517,7 +1522,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         profileImageUrl = saveData.user.profileImage || result;
                         currentUser = saveData.user;
                         signedInUser = saveData.user;
-                        localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+                        saveCurrentUser(saveData.user);
                         localStorage.removeItem(`profileImage_${currentUser.id}`);
 
                         if (topAvatar) {
@@ -1576,7 +1581,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 profileDetails.email = saveData.user.contactEmail ?? nextEmail;
                 currentUser = saveData.user;
                 signedInUser = saveData.user;
-                localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+                saveCurrentUser(saveData.user);
 
                 renderProfileDetails();
                 setProfileEditMode(false);

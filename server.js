@@ -96,23 +96,28 @@ function isLegacyPlaintextPasswordMatch(password, storedValue) {
     return typeof storedValue === "string" && !storedValue.includes(":") && storedValue === password;
 }
 
-function sanitizeUser(user) {
+function sanitizeUser(user, { includeProfileImage = false } = {}) {
     if (!user) {
         return null;
     }
 
-    return {
+    const sanitizedUser = {
         id: user.id,
         name: user.name,
         email: user.email,
         contactEmail: user.contactEmail,
-        profileImage: user.profileImage || "",
         bio: user.bio,
         social: user.social,
         portfolio: user.portfolio,
         specialties: Array.isArray(user.specialties) ? user.specialties : [],
         joinedAt: user.joinedAt
     };
+
+    if (includeProfileImage) {
+        sanitizedUser.profileImage = user.profileImage || "";
+    }
+
+    return sanitizedUser;
 }
 
 function sendJSON(res, statusCode, payload) {
@@ -653,7 +658,11 @@ async function handleRequest(req, res) {
 
             await updateUserPasswordHash(resetToken.user_id, hashPassword(passwordText));
             await markPasswordResetTokenUsed(resetToken.id);
-            sendJSON(res, 200, { success: true });
+            clearAuthCookie(res);
+            sendJSON(res, 200, {
+                success: true,
+                email: resetToken.email
+            });
             return;
         }
 
@@ -1377,7 +1386,7 @@ async function handleRequest(req, res) {
                 return;
             }
 
-            sendJSON(res, 200, { user: sanitizeUser(user) });
+            sendJSON(res, 200, { user: sanitizeUser(user, { includeProfileImage: true }) });
             return;
         }
 
@@ -1410,7 +1419,7 @@ async function handleRequest(req, res) {
                 profileImage: profileImage === undefined ? existingUser.profileImage : String(profileImage || "").trim()
             });
 
-            sendJSON(res, 200, { user: sanitizeUser(user) });
+            sendJSON(res, 200, { user: sanitizeUser(user, { includeProfileImage: true }) });
             return;
         }
 

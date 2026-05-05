@@ -45,6 +45,11 @@ let currentUser = getCurrentUser();
 let selectedRegion = 'All';
 let activeCommunityId = null;
 
+function saveCurrentUser(user) {
+  const { profileImage, ...storageUser } = user || {};
+  localStorage.setItem('currentUser', JSON.stringify(storageUser));
+}
+
 const communityList = document.getElementById('community-list');
 const groupGrid = document.getElementById('group-grid');
 const chatThread = document.getElementById('chat-thread');
@@ -222,7 +227,7 @@ async function initializeConnectPage() {
   try {
     const sessionData = await apiFetchJSON('/api/auth/me');
     currentUser = sessionData.user;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    saveCurrentUser(currentUser);
     await loadCommunities();
     setCommunityFormsEnabled(true);
   } catch (error) {
