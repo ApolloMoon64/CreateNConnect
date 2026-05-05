@@ -8,6 +8,7 @@ const {
     createCommunity,
     createCommunityMessage,
     createNotification,
+    createPasswordResetToken,
     createPortfolioItem,
     createCommission,
     createPost,
@@ -24,6 +25,7 @@ const {
     getCommunityById,
     getFollowSummary,
     getPurchasableItem,
+    getValidPasswordResetToken,
     getUserById,
     healthCheck,
     initializeDatabase,
@@ -40,6 +42,7 @@ const {
     joinCommunity,
     markAllNotificationsRead,
     markNotificationRead,
+    markPasswordResetTokenUsed,
     unfollowUser,
     updateUserPasswordHash,
     updateUserProfile
@@ -211,6 +214,14 @@ function createSessionToken(userId) {
     return `${payload}.${signature}`;
 }
 
+function createSecureToken() {
+    return crypto.randomBytes(32).toString("base64url");
+}
+
+function hashToken(token) {
+    return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 function verifySessionToken(token) {
     if (!token || !token.includes(".")) {
         return null;
@@ -328,8 +339,12 @@ function isEmailConfigured() {
         process.env.SMTP_PORT &&
         process.env.SMTP_USER &&
         process.env.SMTP_PASS &&
-        process.env.MEETING_EMAIL_FROM
+        getEmailFromAddress()
     );
+}
+
+function getEmailFromAddress() {
+    return process.env.EMAIL_FROM || process.env.MEETING_EMAIL_FROM || "";
 }
 
 function getEmailTransporter() {
@@ -381,8 +396,17 @@ function isDemoEmailAddress(value) {
 
 function isSenderAddress(value) {
     const email = String(value || "").trim().toLowerCase();
-    const senderEmail = String(process.env.MEETING_EMAIL_FROM || "").trim().toLowerCase();
+    const senderEmail = String(getEmailFromAddress() || "").trim().toLowerCase();
     return Boolean(email && senderEmail && email === senderEmail);
+}
+
+function getAppBaseUrl(req) {
+    if (process.env.APP_BASE_URL) {
+        return String(process.env.APP_BASE_URL).replace(/\/+$/, "");
+    }
+
+    const protocol = req.headers["x-forwarded-proto"] || "http";
+    return `${protocol}://${req.headers.host || "localhost:3000"}`;
 }
 
 async function sendMeetingInviteEmail({ recipientEmail, recipientName, meeting }) {
@@ -438,7 +462,53 @@ async function sendMeetingInviteEmail({ recipientEmail, recipientName, meeting }
     `;
 
     await transporter.sendMail({
-        from: process.env.MEETING_EMAIL_FROM,
+        from: getEmailFromAddress(),
+        to: recipientEmail,
+        subject,
+        text,
+        html
+    });
+
+    return { delivered: true };
+}
+
+async function sendPasswordResetEmail({ recipientEmail, recipientName, resetLink }) {
+    const transporter = getEmailTransporter();
+
+    if (!transporter) {
+        return { delivered: false, reason: "email_not_configured" };
+    }
+
+    const safeRecipientName = escapeHtml(recipientName || "Creator");
+    const safeResetLink = escapeHtml(resetLink);
+    const subject = "CreateNConnect password reset";
+    const text = [
+        `Hi ${recipientName || "Creator"},`,
+        "",
+        "Use the link below to reset your CreateNConnect password. This link expires in 1 hour.",
+        "",
+        resetLink,
+        "",
+        "If you did not request this, you can ignore this email."
+    ].join("\n");
+    const html = `
+        <div style="font-family: Outfit, Arial, sans-serif; color: #1e1e24; line-height: 1.6;">
+            <h2>Password reset requested</h2>
+            <p>Hi ${safeRecipientName},</p>
+            <p>Use the button below to reset your CreateNConnect password. This link expires in 1 hour.</p>
+            <p>
+                <a href="${safeResetLink}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;">
+                    Reset password
+                </a>
+            </p>
+            <p>If the button does not work, paste this link into your browser:</p>
+            <p><a href="${safeResetLink}">${safeResetLink}</a></p>
+            <p>If you did not request this, you can ignore this email.</p>
+        </div>
+    `;
+
+    await transporter.sendMail({
+        from: getEmailFromAddress(),
         to: recipientEmail,
         subject,
         text,
@@ -472,6 +542,63 @@ async function handleRequest(req, res) {
 
         if (req.method === "POST" && pathname === "/api/auth/logout") {
             clearAuthCookie(res);
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/auth/password-reset-request") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const token = createSecureToken();
+            const tokenHash = hashToken(token);
+
+            await createPasswordResetToken({
+                userId: authenticatedUser.id,
+                tokenHash,
+                expiresInSeconds: 60 * 60
+            });
+
+            const resetLink = `${getAppBaseUrl(req)}/reset-password.html?token=${encodeURIComponent(token)}`;
+            const result = await sendPasswordResetEmail({
+                recipientEmail: authenticatedUser.email,
+                recipientName: authenticatedUser.name,
+                resetLink
+            });
+
+            sendJSON(res, 200, {
+                ...result,
+                email: authenticatedUser.email
+            });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/auth/password-reset-complete") {
+            const { token, password } = await readBody(req);
+            const tokenText = String(token || "").trim();
+            const passwordText = String(password || "");
+
+            if (!tokenText || !passwordText) {
+                sendJSON(res, 400, { error: "Reset token and new password are required." });
+                return;
+            }
+
+            if (passwordText.length < 8) {
+                sendJSON(res, 400, { error: "Password must be at least 8 characters." });
+                return;
+            }
+
+            const resetToken = await getValidPasswordResetToken(hashToken(tokenText));
+            if (!resetToken) {
+                sendJSON(res, 400, { error: "This password reset link is invalid or expired." });
+                return;
+            }
+
+            await updateUserPasswordHash(resetToken.user_id, hashPassword(passwordText));
+            await markPasswordResetTokenUsed(resetToken.id);
             sendJSON(res, 200, { success: true });
             return;
         }

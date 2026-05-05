@@ -98,30 +98,13 @@
             Change Password
         </button>
     </div>
-    <div id="password-confirmation" style="display: none; margin-top: 15px; padding: 10px; background: rgba(37, 99, 235, 0.1); border-radius: 8px; border-left: 4px solid var(--accent-color);">
+    <div id="password-confirmation" class="settings-message" hidden>
         <p style="margin: 0; color: var(--text-color); font-size: 0.9rem;">
             <i class="ph ph-envelope-simple" style="vertical-align: middle; margin-right: 5px;"></i>
-            An email has been sent to your registered email address with instructions to change your password.
+            <span id="password-confirmation-text">An email has been sent to your registered email address with instructions to change your password.</span>
         </p>
     </div>
 </section>
-
-<script>
-    document.getElementById('change-password-btn').addEventListener('click', function() {
-        const btn = this;
-        const confirmationBox = document.getElementById('password-confirmation');
-
-        // 1. Style the button to look "saved"
-        btn.innerText = 'Email Sent';
-        btn.style.backgroundColor = "#10b981"; 
-        btn.disabled = true;
-        btn.style.cursor = 'not-allowed';
-
-        // 2. Show the confirmation box with the green glow class
-        confirmationBox.style.display = 'block';
-        confirmationBox.classList.add('glow-success');[cite, 1]
-    });
-</script>
 
                         
                     <!--NOTIFICATION SETTINGS-->
@@ -181,40 +164,7 @@
     </div>
     <script src="theme.js"></script>
     <script src="script.js"></script>
-    <script src="commissions.js"></script>
+    <script src="settings.js"></script>
 </body>
 
 </html>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const saveBtn = document.getElementById('noti-settings');
-    const checkboxes = document.querySelectorAll('.notification-settings input[type="checkbox"]');
-
-    // --- LOAD SAVED SETTINGS ---
-    checkboxes.forEach(checkbox => {
-        const savedValue = localStorage.getItem(checkbox.id);
-        if (savedValue !== null) {
-            // If we have a saved preference, override the default "checked"
-            checkbox.checked = (savedValue === 'true');
-        }
-    });
-
-    // --- SAVE ON BUTTON CLICK ---
-    saveBtn.addEventListener('click', () => {
-        checkboxes.forEach(checkbox => {
-            localStorage.setItem(checkbox.id, checkbox.checked);
-        });
-
-        // Visual feedback
-        const originalText = saveBtn.innerText;
-        saveBtn.innerText = "Settings Saved!";
-        saveBtn.style.backgroundColor = "#10b981"; // Change to a green success color
-
-        setTimeout(() => {
-            saveBtn.innerText = originalText;
-            saveBtn.style.backgroundColor = ""; 
-        }, 2000);
-    });
-});
-</script>

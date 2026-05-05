@@ -1769,6 +1769,28 @@ a {
     padding-bottom: 30px;
 }
 
+.settings-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-color);
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.settings-message[hidden] {
+    display: none;
+}
+
+.settings-message.success {
+    border-left-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.settings-message.error {
+    border-left-color: #b91c1c;
+    background: rgba(254, 226, 226, 0.8);
+}
+
 [data-theme="light"]{
     --bg-color-1: #fef08a;
 }

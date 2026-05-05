@@ -430,6 +430,23 @@ async function initializeDatabase() {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY password_reset_tokens_token_hash_unique (token_hash),
+            KEY password_reset_tokens_user_id_index (user_id),
+            CONSTRAINT password_reset_tokens_user_id_fk
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS user_follows (
             follower_user_id BIGINT UNSIGNED NOT NULL,
             following_user_id BIGINT UNSIGNED NOT NULL,
@@ -679,6 +696,53 @@ async function markAllNotificationsRead(userId) {
          WHERE user_id = ?
            AND read_at IS NULL`,
         [userId]
+    );
+}
+
+async function createPasswordResetToken({ userId, tokenHash, expiresInSeconds = 60 * 60 }) {
+    await pool.query(
+        `UPDATE password_reset_tokens
+         SET used_at = COALESCE(used_at, CURRENT_TIMESTAMP)
+         WHERE user_id = ?
+           AND used_at IS NULL`,
+        [userId]
+    );
+
+    const [result] = await pool.query(
+        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+         VALUES (?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? SECOND))`,
+        [userId, tokenHash, expiresInSeconds]
+    );
+
+    return result.insertId;
+}
+
+async function getValidPasswordResetToken(tokenHash) {
+    const [rows] = await pool.query(
+        `SELECT password_reset_tokens.id,
+                password_reset_tokens.user_id,
+                password_reset_tokens.expires_at,
+                password_reset_tokens.used_at,
+                users.email,
+                users.name
+         FROM password_reset_tokens
+         INNER JOIN users ON users.id = password_reset_tokens.user_id
+         WHERE password_reset_tokens.token_hash = ?
+           AND password_reset_tokens.used_at IS NULL
+           AND password_reset_tokens.expires_at > CURRENT_TIMESTAMP
+         LIMIT 1`,
+        [tokenHash]
+    );
+
+    return rows[0] || null;
+}
+
+async function markPasswordResetTokenUsed(id) {
+    await pool.query(
+        `UPDATE password_reset_tokens
+         SET used_at = COALESCE(used_at, CURRENT_TIMESTAMP)
+         WHERE id = ?`,
+        [id]
     );
 }
 
@@ -1098,6 +1162,7 @@ module.exports = {
     createCommunity,
     createCommunityMessage,
     createNotification,
+    createPasswordResetToken,
     createPortfolioItem,
     createCommission,
     createPost,
@@ -1112,6 +1177,7 @@ module.exports = {
     findUserByEmail,
     followUser,
     getFollowSummary,
+    getValidPasswordResetToken,
     getUserById,
     getPurchasableItem,
     getCommunityById,
@@ -1130,6 +1196,7 @@ module.exports = {
     joinCommunity,
     markAllNotificationsRead,
     markNotificationRead,
+    markPasswordResetTokenUsed,
     pool,
     unfollowUser,
     updateUserPasswordHash,
