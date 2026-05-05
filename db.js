@@ -539,12 +539,12 @@ async function getUserById(id) {
     return mapUser(rows[0]);
 }
 
-async function updateUserProfile(id, { bio, social, portfolio }) {
+async function updateUserProfile(id, { bio, social, portfolio, email }) {
     await pool.query(
         `UPDATE users
-         SET bio = ?, social_handle = ?, portfolio_label = ?
+         SET bio = ?, social_handle = ?, portfolio_label = ?, email = ?
          WHERE id = ?`,
-        [bio, social, portfolio, id]
+        [bio, social, portfolio, email, id]
     );
 
     return getUserById(id);

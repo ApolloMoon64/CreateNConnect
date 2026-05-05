@@ -1238,6 +1238,42 @@ a {
     font-weight: 500;
 }
 
+.profile-bio-copy.is-hidden,
+.profile-links.is-hidden,
+.profile-inline-edit-form.is-hidden {
+    display: none;
+}
+
+.profile-inline-edit-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.profile-inline-field {
+    display: grid;
+    gap: 0.4rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.profile-inline-field-full,
+.profile-inline-actions {
+    grid-column: 1 / -1;
+}
+
+.profile-inline-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.profile-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 .profile-meta-row {
     display: grid;
     grid-template-columns: minmax(0, 280px) 1fr;
@@ -1708,6 +1744,7 @@ a {
     .profile-headline,
     .profile-actions,
     .profile-links,
+    .profile-inline-edit-form,
     .profile-tabs,
     .profile-content-grid,
     .profile-content-form-grid {

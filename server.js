@@ -105,6 +105,8 @@ function sanitizeUser(user) {
         name: user.name,
         email: user.email,
         bio: user.bio,
+        social: user.social,
+        portfolio: user.portfolio,
         specialties: Array.isArray(user.specialties) ? user.specialties : [],
         joinedAt: user.joinedAt
     };
@@ -1283,7 +1285,7 @@ async function handleRequest(req, res) {
 
         if (req.method === "PUT" && pathname.startsWith("/api/users/")) {
             const userId = pathname.split("/").pop();
-            const { bio, social, portfolio } = await readBody(req);
+            const { bio, social, portfolio, email } = await readBody(req);
             const authUser = await requireResourceOwner(req, res, userId);
 
             if (!authUser) {
@@ -1296,10 +1298,25 @@ async function handleRequest(req, res) {
                 return;
             }
 
+            const nextEmail = String(email || "").trim().toLowerCase() || existingUser.email;
+            if (!isValidEmailAddress(nextEmail)) {
+                sendJSON(res, 400, { error: "Please enter a valid email address." });
+                return;
+            }
+
+            if (nextEmail !== String(existingUser.email || "").toLowerCase()) {
+                const userWithEmail = await findUserByEmail(nextEmail);
+                if (userWithEmail && String(userWithEmail.id) !== String(userId)) {
+                    sendJSON(res, 409, { error: "An account with that email already exists." });
+                    return;
+                }
+            }
+
             const user = await updateUserProfile(userId, {
                 bio: String(bio || "").trim() || existingUser.bio,
                 social: String(social || "").trim() || existingUser.social || "@artist_handle",
-                portfolio: String(portfolio || "").trim() || existingUser.portfolio || "Portfolio link"
+                portfolio: String(portfolio || "").trim() || existingUser.portfolio || "Portfolio link",
+                email: nextEmail
             });
 
             sendJSON(res, 200, { user: sanitizeUser(user) });

@@ -91,11 +91,34 @@
 
                   <div class="profile-bio-card glass-panel-lite">
                     <p class="profile-bio-copy" data-profile-bio>Description about themselves here.</p>
-                    <div class="profile-links">
+                    <div class="profile-links" data-profile-links-view>
                       <a href="#"><i class="ph ph-at"></i> <span data-profile-social>@artist_handle</span></a>
-                      <a href="#"><i class="ph ph-globe"></i> <span data-profile-portfolio>Portfolio link</span></a>
+                      <a href="#" data-profile-portfolio-link><i class="ph ph-globe"></i> <span data-profile-portfolio>Portfolio link</span></a>
                       <a href="#" data-profile-email-link><i class="ph ph-envelope-simple"></i> <span data-profile-email>artist@example.com</span></a>
                     </div>
+
+                    <form id="profile-inline-edit-form" class="profile-inline-edit-form is-hidden" aria-hidden="true">
+                      <label class="profile-inline-field profile-inline-field-full">
+                        <span>Bio</span>
+                        <textarea id="profile-edit-bio-input" class="auth-input profile-inline-textarea" placeholder="Tell people about your creative work."></textarea>
+                      </label>
+                      <label class="profile-inline-field">
+                        <span>@ Handle</span>
+                        <input id="profile-edit-social-input" class="auth-input" type="text" placeholder="@artist_handle">
+                      </label>
+                      <label class="profile-inline-field">
+                        <span>Website</span>
+                        <input id="profile-edit-portfolio-input" class="auth-input" type="text" placeholder="https://your-site.com">
+                      </label>
+                      <label class="profile-inline-field profile-inline-field-full">
+                        <span>Email</span>
+                        <input id="profile-edit-email-input" class="auth-input" type="email" placeholder="artist@example.com">
+                      </label>
+                      <div class="profile-inline-actions">
+                        <button class="btn btn-primary" type="submit">Save Profile</button>
+                        <button id="profile-inline-edit-cancel" class="btn btn-secondary" type="button">Cancel</button>
+                      </div>
+                    </form>
                   </div>
 
                   <div class="profile-meta-row">

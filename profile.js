@@ -59,6 +59,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const followList = document.getElementById("follow-list");
     const followListClose = document.getElementById("follow-list-close");
     const followListButtons = document.querySelectorAll("[data-follow-list]");
+    const profileInlineEditForm = document.getElementById("profile-inline-edit-form");
+    const profileInlineEditCancel = document.getElementById("profile-inline-edit-cancel");
+    const profileBioInput = document.getElementById("profile-edit-bio-input");
+    const profileSocialInput = document.getElementById("profile-edit-social-input");
+    const profilePortfolioInput = document.getElementById("profile-edit-portfolio-input");
+    const profileEmailInput = document.getElementById("profile-edit-email-input");
+    const profileLinksView = document.querySelector("[data-profile-links-view]");
 
     if (!currentUserRaw && !profileUserId) {
         window.location.href = "auth.html";
@@ -114,6 +121,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+
+    const createWebsiteHref = (value) => {
+        const trimmedValue = String(value || "").trim();
+
+        if (!trimmedValue || trimmedValue === "Portfolio link") {
+            return "#";
+        }
+
+        if (/^https?:\/\//i.test(trimmedValue)) {
+            return trimmedValue;
+        }
+
+        if (/^[^\s]+\.[^\s]+$/.test(trimmedValue)) {
+            return `https://${trimmedValue}`;
+        }
+
+        return "#";
+    };
 
     if (currentUser) {
         try {
@@ -1298,7 +1323,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const profileDetails = {
             bio: user.bio,
             social: user.social || "@artist_handle",
-            portfolio: user.portfolio || "Portfolio link"
+            portfolio: user.portfolio || "Portfolio link",
+            email: user.email
         };
 
         const nameTargets = document.querySelectorAll("[data-profile-name]");
@@ -1310,18 +1336,76 @@ document.addEventListener("DOMContentLoaded", async () => {
         const socialTargets = document.querySelectorAll("[data-profile-social]");
         const portfolioTargets = document.querySelectorAll("[data-profile-portfolio]");
         const emailLink = document.querySelector("[data-profile-email-link]");
+        const portfolioLink = document.querySelector("[data-profile-portfolio-link]");
+
+        const renderProfileDetails = () => {
+            emailTargets.forEach((element) => {
+                element.textContent = profileDetails.email;
+            });
+
+            bioTargets.forEach((element) => {
+                element.textContent = profileDetails.bio;
+            });
+
+            socialTargets.forEach((element) => {
+                element.textContent = profileDetails.social;
+            });
+
+            portfolioTargets.forEach((element) => {
+                element.textContent = profileDetails.portfolio;
+            });
+
+            if (emailLink) {
+                emailLink.href = `mailto:${profileDetails.email}`;
+            }
+
+            if (portfolioLink) {
+                const websiteHref = createWebsiteHref(profileDetails.portfolio);
+                portfolioLink.href = websiteHref;
+                portfolioLink.target = websiteHref === "#" ? "" : "_blank";
+                portfolioLink.rel = websiteHref === "#" ? "" : "noopener noreferrer";
+            }
+        };
+
+        const setProfileEditMode = (isEditing) => {
+            if (!profileInlineEditForm) {
+                return;
+            }
+
+            profileInlineEditForm.classList.toggle("is-hidden", !isEditing);
+            profileInlineEditForm.setAttribute("aria-hidden", String(!isEditing));
+            profileLinksView?.classList.toggle("is-hidden", isEditing);
+            bioTargets.forEach((element) => {
+                element.classList.toggle("is-hidden", isEditing);
+            });
+
+            if (editButton) {
+                editButton.textContent = isEditing ? "Editing Profile" : "Edit Profile";
+                editButton.disabled = isEditing;
+            }
+
+            if (isEditing) {
+                if (profileBioInput) {
+                    profileBioInput.value = profileDetails.bio;
+                    profileBioInput.focus();
+                }
+                if (profileSocialInput) {
+                    profileSocialInput.value = profileDetails.social;
+                }
+                if (profilePortfolioInput) {
+                    profilePortfolioInput.value = profileDetails.portfolio;
+                }
+                if (profileEmailInput) {
+                    profileEmailInput.value = profileDetails.email;
+                }
+            }
+        };
 
         nameTargets.forEach((element) => {
             element.textContent = user.name;
         });
 
-        emailTargets.forEach((element) => {
-            element.textContent = user.email;
-        });
-
-        bioTargets.forEach((element) => {
-            element.textContent = profileDetails.bio;
-        });
+        renderProfileDetails();
 
         initialsTargets.forEach((element) => {
             element.textContent = user.name
@@ -1330,14 +1414,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .slice(0, 2)
                 .map((part) => part[0].toUpperCase())
                 .join("");
-        });
-
-        socialTargets.forEach((element) => {
-            element.textContent = profileDetails.social;
-        });
-
-        portfolioTargets.forEach((element) => {
-            element.textContent = profileDetails.portfolio;
         });
 
         if (specialtyList) {
@@ -1357,10 +1433,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(signedInUser.name)}&background=2563eb&color=fff`;
             topAvatar.src = signedInAvatar;
             topAvatar.alt = `${signedInUser.name} avatar`;
-        }
-
-        if (emailLink) {
-            emailLink.href = `mailto:${user.email}`;
         }
 
         if (profileImageInput && isOwnProfile) {
@@ -1410,55 +1482,62 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (editButton && isOwnProfile) {
-            editButton.addEventListener("click", async () => {
-                const nextBio = window.prompt("Update your profile description:", profileDetails.bio);
-                if (nextBio === null) {
-                    return;
-                }
-
-                const nextSocial = window.prompt("Update your social handle:", profileDetails.social);
-                if (nextSocial === null) {
-                    return;
-                }
-
-                const nextPortfolio = window.prompt("Update your portfolio link label:", profileDetails.portfolio);
-                if (nextPortfolio === null) {
-                    return;
-                }
-
-                try {
-                    const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            bio: nextBio.trim() || profileDetails.bio,
-                            social: nextSocial.trim() || profileDetails.social,
-                            portfolio: nextPortfolio.trim() || profileDetails.portfolio
-                        })
-                    });
-
-                    profileDetails.bio = saveData.user.bio;
-                    profileDetails.social = saveData.user.social;
-                    profileDetails.portfolio = saveData.user.portfolio;
-
-                    bioTargets.forEach((element) => {
-                        element.textContent = profileDetails.bio;
-                    });
-
-                    socialTargets.forEach((element) => {
-                        element.textContent = profileDetails.social;
-                    });
-
-                    portfolioTargets.forEach((element) => {
-                        element.textContent = profileDetails.portfolio;
-                    });
-                } catch (error) {
-                    window.alert(error.message);
-                }
-            });
+            editButton.addEventListener("click", () => setProfileEditMode(true));
         }
+
+        profileInlineEditCancel?.addEventListener("click", () => {
+            setProfileEditMode(false);
+        });
+
+        profileInlineEditForm?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const nextBio = profileBioInput?.value.trim() || profileDetails.bio;
+            const rawSocial = profileSocialInput?.value.trim() || profileDetails.social;
+            const nextSocial = rawSocial && !rawSocial.startsWith("@") ? `@${rawSocial}` : rawSocial;
+            const nextPortfolio = profilePortfolioInput?.value.trim() || profileDetails.portfolio;
+            const nextEmail = profileEmailInput?.value.trim().toLowerCase() || profileDetails.email;
+            const saveButton = profileInlineEditForm.querySelector('button[type="submit"]');
+            const previousSaveText = saveButton?.textContent || "Save Profile";
+
+            try {
+                if (saveButton) {
+                    saveButton.disabled = true;
+                    saveButton.textContent = "Saving...";
+                }
+
+                const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        bio: nextBio,
+                        social: nextSocial,
+                        portfolio: nextPortfolio,
+                        email: nextEmail
+                    })
+                });
+
+                profileDetails.bio = saveData.user.bio;
+                profileDetails.social = saveData.user.social || nextSocial;
+                profileDetails.portfolio = saveData.user.portfolio || nextPortfolio;
+                profileDetails.email = saveData.user.email || nextEmail;
+                currentUser = saveData.user;
+                signedInUser = saveData.user;
+                localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+
+                renderProfileDetails();
+                setProfileEditMode(false);
+            } catch (error) {
+                window.alert(error.message);
+            } finally {
+                if (saveButton) {
+                    saveButton.disabled = false;
+                    saveButton.textContent = previousSaveText;
+                }
+            }
+        });
 
         initialsTargets.forEach((element) => {
             element.style.backgroundImage = "";
