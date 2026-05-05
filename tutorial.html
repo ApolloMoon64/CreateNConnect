@@ -30,9 +30,9 @@
                     <i class="ph ph-bell"></i>
                     <span class="notification-dot"></span>
                 </button>
-                <div class="profile-avatar">
+                <a class="profile-avatar" href="profile.html" aria-label="Open artist profile">
                     <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
-                </div>
+                </a>
             </div>
         </header>
 
@@ -61,6 +61,67 @@
             <!-- Main Content Area -->
             <main class="main-content">
                 <div class="content-card glass-panel">
+                    <div class="tutorial-page-header">
+                        <div>
+                            <h1 class="page-title">Digital Art Tutorials</h1>
+                        </div>
+                        <button class="btn btn-primary" type="button" id="add-tutorial-btn">
+                            <i class="ph ph-plus"></i>
+                            Add Tutorial
+                        </button>
+                    </div>
+
+                    <p id="tutorial-message" class="tutorial-message" aria-live="polite"></p>
+
+                    <section id="tutorial-form-panel" class="tutorial-form-panel glass-panel is-hidden" aria-hidden="true">
+                        <div class="tutorial-form-header">
+                            <div>
+                                <p class="tutorial-kicker">New Tutorial</p>
+                                <h2>Add Tutorial</h2>
+                            </div>
+                            <button class="btn btn-secondary" type="button" id="tutorial-form-close">Close</button>
+                        </div>
+
+                        <form id="tutorial-form" class="tutorial-form">
+                            <label class="tutorial-form-field">
+                                <span>Title</span>
+                                <input id="tutorial-title" type="text" placeholder="Beginner shading walkthrough" required>
+                            </label>
+
+                            <label class="tutorial-form-field">
+                                <span>Description</span>
+                                <textarea id="tutorial-description" rows="4" placeholder="Share what this tutorial teaches." required></textarea>
+                            </label>
+
+                            <label class="tutorial-form-field">
+                                <span>Media Type</span>
+                                <select id="tutorial-media-type">
+                                    <option value="image">Image</option>
+                                    <option value="video">Video</option>
+                                </select>
+                            </label>
+
+                            <div class="tutorial-form-field">
+                                <span>Tutorial Media</span>
+                                <label class="tutorial-upload-card" for="tutorial-media-input">
+                                    <input id="tutorial-media-input" type="file" accept="image/*,video/*" hidden>
+                                    <img id="tutorial-image-preview" class="tutorial-upload-preview" alt="Tutorial media preview" hidden>
+                                    <video id="tutorial-video-preview" class="tutorial-upload-preview" controls muted hidden></video>
+                                    <div id="tutorial-upload-empty" class="tutorial-upload-empty">
+                                        <span class="add-post-icon"><i class="ph ph-image-square"></i></span>
+                                        <span class="add-post-title">Choose tutorial media from your device</span>
+                                        <span class="add-post-copy">Upload the image or video creators should see for this tutorial.</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="tutorial-form-actions">
+                                <button class="btn btn-primary" type="submit">Save Tutorial</button>
+                                <button class="btn btn-secondary" type="button" id="tutorial-form-reset">Clear</button>
+                            </div>
+                        </form>
+                    </section>
+
                     <div class="tutorial-grid">
                     </div>
 
@@ -94,6 +155,7 @@
     </div>
     <script src="themer.js"></script>
     <script src="script.js"></script>
+    <script src="tutorial.js"></script>
 </body>
 
 </html>

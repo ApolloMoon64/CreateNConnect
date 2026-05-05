@@ -30,6 +30,7 @@ const {
     healthCheck,
     initializeDatabase,
     listAllCommissions,
+    listAllTutorials,
     listCommunitiesForUser,
     listCommunityMessages,
     listNotificationsForUser,
@@ -1342,6 +1343,12 @@ async function handleRequest(req, res) {
 
             const commissions = await listCommissionsByUserId(userId);
             sendJSON(res, 200, { commissions });
+            return;
+        }
+
+        if (req.method === "GET" && pathname === "/api/tutorials") {
+            const tutorials = await listAllTutorials();
+            sendJSON(res, 200, { tutorials });
             return;
         }
 

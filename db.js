@@ -907,6 +907,17 @@ async function listTutorialsByUserId(userId) {
     return rows.map(mapTutorial);
 }
 
+async function listAllTutorials() {
+    const [rows] = await pool.query(
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
+         FROM tutorials
+         INNER JOIN users ON users.id = tutorials.user_id
+         ORDER BY tutorials.id DESC`
+    );
+
+    return rows.map(mapTutorial);
+}
+
 async function createTutorial({ userId, title, description, imageUrl, mediaType }) {
     const [result] = await pool.query(
         `INSERT INTO tutorials (user_id, title, description, image_url, media_type)
@@ -1184,6 +1195,7 @@ module.exports = {
     healthCheck,
     initializeDatabase,
     listAllCommissions,
+    listAllTutorials,
     listCommunitiesForUser,
     listCommunityMessages,
     listNotificationsForUser,

@@ -378,6 +378,7 @@ a {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    gap: 1.5rem;
 }
 
 /* Custom Scrollbar for Main Content */
@@ -535,6 +536,163 @@ a {
 }
 
 /* Tutorial Grid Styles */
+.tutorial-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.tutorial-page-header .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.tutorial-message {
+    min-height: 1.4rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.tutorial-message.success {
+    color: #047857;
+}
+
+.tutorial-message.error {
+    color: #b91c1c;
+}
+
+.tutorial-message.info {
+    color: var(--accent-color);
+}
+
+.tutorial-form-panel {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.25rem;
+}
+
+.tutorial-form-panel.is-hidden {
+    display: none;
+}
+
+.tutorial-form-header,
+.tutorial-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.tutorial-kicker {
+    color: var(--accent-color);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.3rem;
+}
+
+.tutorial-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.tutorial-form-field {
+    display: grid;
+    gap: 0.45rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.tutorial-form-field input,
+.tutorial-form-field textarea,
+.tutorial-form-field select {
+    width: 100%;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--border-radius-md);
+    padding: 0.8rem 1rem;
+    font: inherit;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.72);
+    outline: none;
+}
+
+.tutorial-form-field textarea {
+    resize: vertical;
+}
+
+.tutorial-form-field input:focus,
+.tutorial-form-field textarea:focus,
+.tutorial-form-field select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.tutorial-upload-card {
+    min-height: 240px;
+    border: 1px dashed rgba(37, 99, 235, 0.45);
+    border-radius: var(--border-radius-md);
+    background: rgba(255, 255, 255, 0.45);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.tutorial-upload-preview {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
+}
+
+.tutorial-upload-empty {
+    display: grid;
+    place-items: center;
+    gap: 0.45rem;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.tutorial-upload-empty[hidden],
+.tutorial-upload-preview[hidden] {
+    display: none;
+}
+
+.add-post-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent-color);
+    display: grid;
+    place-items: center;
+    font-size: 1.6rem;
+}
+
+.add-post-title {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.add-post-copy {
+    max-width: 32rem;
+    color: var(--text-light);
+    line-height: 1.45;
+}
+
 .tutorial-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -607,6 +765,30 @@ a {
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.video-preview video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tutorial-card-title {
+    margin-bottom: 0.5rem;
+}
+
+.tutorial-card-copy {
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.tutorial-empty-state {
+    grid-column: 1 / -1;
+    padding: 1.25rem;
+    color: var(--text-secondary);
+    text-align: center;
 }
 
 .post-image-placeholder::before {
