@@ -6,9 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentUserRaw && navAvatarImages.length) {
         try {
             currentUser = JSON.parse(currentUserRaw);
-            const savedProfileImage = localStorage.getItem(`profileImage_${currentUser.id}`);
             const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=2563eb&color=fff`;
-            const avatarSrc = savedProfileImage || fallbackAvatar;
+            const avatarSrc = currentUser.profileImage || fallbackAvatar;
 
             navAvatarImages.forEach((image) => {
                 image.src = avatarSrc;

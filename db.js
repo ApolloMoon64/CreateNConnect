@@ -49,6 +49,7 @@ function mapUser(row) {
         name: row.name,
         email: row.email,
         contactEmail: row.contact_email === null || row.contact_email === undefined ? row.email : row.contact_email,
+        profileImage: row.profile_image || "",
         bio: row.bio,
         social: row.social_handle,
         portfolio: row.portfolio_label,
@@ -218,6 +219,7 @@ async function initializeDatabase() {
             name VARCHAR(120) NOT NULL,
             email VARCHAR(190) NOT NULL,
             contact_email VARCHAR(190) NULL,
+            profile_image LONGTEXT NULL,
             password_hash VARCHAR(255) NOT NULL,
             bio TEXT NOT NULL,
             social_handle VARCHAR(120) NOT NULL DEFAULT '@artist_handle',
@@ -261,6 +263,13 @@ async function initializeDatabase() {
             UPDATE users
             SET contact_email = email
             WHERE contact_email IS NULL
+        `);
+    }
+
+    if (!existingColumns.has("profile_image")) {
+        await pool.query(`
+            ALTER TABLE users
+            ADD COLUMN profile_image LONGTEXT NULL AFTER contact_email
         `);
     }
 
@@ -536,7 +545,7 @@ async function healthCheck() {
 
 async function findUserByEmail(email) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, contact_email, password_hash, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, profile_image, password_hash, bio, social_handle, portfolio_label, specialties, joined_at
          FROM users
          WHERE email = ?
          LIMIT 1`,
@@ -571,7 +580,7 @@ async function createUser({ name, email, passwordHash }) {
 
 async function getUserById(id) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, contact_email, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, profile_image, bio, social_handle, portfolio_label, specialties, joined_at
          FROM users
          WHERE id = ?
          LIMIT 1`,
@@ -581,12 +590,12 @@ async function getUserById(id) {
     return mapUser(rows[0]);
 }
 
-async function updateUserProfile(id, { bio, social, portfolio, contactEmail }) {
+async function updateUserProfile(id, { bio, social, portfolio, contactEmail, profileImage }) {
     await pool.query(
         `UPDATE users
-         SET bio = ?, social_handle = ?, portfolio_label = ?, contact_email = ?
+         SET bio = ?, social_handle = ?, portfolio_label = ?, contact_email = ?, profile_image = ?
          WHERE id = ?`,
-        [bio, social, portfolio, contactEmail, id]
+        [bio, social, portfolio, contactEmail, profileImage, id]
     );
 
     return getUserById(id);

@@ -76,7 +76,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     let signedInUser = null;
     const targetUserId = profileUserId || currentUser?.id;
     let isOwnProfile = false;
-    const profileImageStorageKey = `profileImage_${targetUserId}`;
 
     const setActiveTab = (tabName) => {
         tabButtons.forEach((button) => {
@@ -1337,6 +1336,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         const portfolioTargets = document.querySelectorAll("[data-profile-portfolio]");
         const emailLink = document.querySelector("[data-profile-email-link]");
         const portfolioLink = document.querySelector("[data-profile-portfolio-link]");
+        const fallbackAvatarUrl = (name) =>
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff`;
+        const setHeroAvatarImage = (imageUrl) => {
+            const hasImage = Boolean(imageUrl);
+
+            profileAvatarEditor?.classList.toggle("has-image", hasImage);
+            initialsTargets.forEach((element) => {
+                if (hasImage) {
+                    element.style.backgroundImage = `url("${imageUrl}")`;
+                    element.style.backgroundSize = "cover";
+                    element.style.backgroundPosition = "center";
+                    element.style.color = "transparent";
+                    return;
+                }
+
+                element.style.backgroundImage = "";
+                element.style.backgroundSize = "";
+                element.style.backgroundPosition = "";
+                element.style.color = "";
+            });
+        };
 
         const renderProfileDetails = () => {
             emailTargets.forEach((element) => {
@@ -1422,15 +1442,36 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .join("");
         }
 
-        const savedAvatarUrl = isOwnProfile ? localStorage.getItem(profileImageStorageKey) : "";
-        const avatarUrl =
-            savedAvatarUrl ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=2563eb&color=fff`;
+        let profileImageUrl = user.profileImage || "";
+
+        if (isOwnProfile && !profileImageUrl) {
+            const oldLocalImage = localStorage.getItem(`profileImage_${targetUserId}`);
+            if (oldLocalImage) {
+                profileImageUrl = oldLocalImage;
+                try {
+                    const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            profileImage: oldLocalImage
+                        })
+                    });
+
+                    profileImageUrl = saveData.user.profileImage || oldLocalImage;
+                    currentUser = saveData.user;
+                    signedInUser = saveData.user;
+                    localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+                    localStorage.removeItem(`profileImage_${targetUserId}`);
+                } catch (error) {
+                    // Keep showing the local image if the migration cannot save yet.
+                }
+            }
+        }
 
         if (topAvatar && signedInUser) {
-            const signedInAvatar =
-                localStorage.getItem(`profileImage_${signedInUser.id}`) ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(signedInUser.name)}&background=2563eb&color=fff`;
+            const signedInAvatar = signedInUser.profileImage || fallbackAvatarUrl(signedInUser.name);
             topAvatar.src = signedInAvatar;
             topAvatar.alt = `${signedInUser.name} avatar`;
         }
@@ -1456,26 +1497,37 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
 
                 const reader = new FileReader();
-                reader.onload = () => {
+                reader.onload = async () => {
                     const result = typeof reader.result === "string" ? reader.result : "";
                     if (!result) {
                         return;
                     }
 
-                    localStorage.setItem(profileImageStorageKey, result);
+                    try {
+                        const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                profileImage: result
+                            })
+                        });
 
-                    if (topAvatar) {
-                        topAvatar.src = result;
+                        profileImageUrl = saveData.user.profileImage || result;
+                        currentUser = saveData.user;
+                        signedInUser = saveData.user;
+                        localStorage.setItem("currentUser", JSON.stringify(saveData.user));
+                        localStorage.removeItem(`profileImage_${currentUser.id}`);
+
+                        if (topAvatar) {
+                            topAvatar.src = profileImageUrl;
+                        }
+
+                        setHeroAvatarImage(profileImageUrl);
+                    } catch (error) {
+                        window.alert(error.message);
                     }
-
-                    profileAvatarEditor?.classList.add("has-image");
-
-                    initialsTargets.forEach((element) => {
-                        element.style.backgroundImage = `url("${result}")`;
-                        element.style.backgroundSize = "cover";
-                        element.style.backgroundPosition = "center";
-                        element.style.color = "transparent";
-                    });
                 };
                 reader.readAsDataURL(file);
             });
@@ -1538,24 +1590,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
 
-        initialsTargets.forEach((element) => {
-            element.style.backgroundImage = "";
-            element.style.backgroundSize = "";
-            element.style.backgroundPosition = "";
-            element.style.color = "";
-        });
-
-        if (savedAvatarUrl) {
-            profileAvatarEditor?.classList.add("has-image");
-            initialsTargets.forEach((element) => {
-                element.style.backgroundImage = `url("${avatarUrl}")`;
-                element.style.backgroundSize = "cover";
-                element.style.backgroundPosition = "center";
-                element.style.color = "transparent";
-            });
-        } else {
-            profileAvatarEditor?.classList.remove("has-image");
-        }
+        setHeroAvatarImage(profileImageUrl);
 
         hidePanel(postFormPanel);
         hidePanel(commissionFormPanel);

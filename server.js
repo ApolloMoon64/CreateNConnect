@@ -106,6 +106,7 @@ function sanitizeUser(user) {
         name: user.name,
         email: user.email,
         contactEmail: user.contactEmail,
+        profileImage: user.profileImage || "",
         bio: user.bio,
         social: user.social,
         portfolio: user.portfolio,
@@ -1382,7 +1383,7 @@ async function handleRequest(req, res) {
 
         if (req.method === "PUT" && pathname.startsWith("/api/users/")) {
             const userId = pathname.split("/").pop();
-            const { bio, social, portfolio, email } = await readBody(req);
+            const { bio, social, portfolio, email, profileImage } = await readBody(req);
             const authUser = await requireResourceOwner(req, res, userId);
 
             if (!authUser) {
@@ -1405,7 +1406,8 @@ async function handleRequest(req, res) {
                 bio: bio === undefined ? existingUser.bio : String(bio).trim(),
                 social: social === undefined ? existingUser.social : String(social).trim(),
                 portfolio: portfolio === undefined ? existingUser.portfolio : String(portfolio).trim(),
-                contactEmail: nextContactEmail
+                contactEmail: nextContactEmail,
+                profileImage: profileImage === undefined ? existingUser.profileImage : String(profileImage || "").trim()
             });
 
             sendJSON(res, 200, { user: sanitizeUser(user) });
