@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const createWebsiteHref = (value) => {
         const trimmedValue = String(value || "").trim();
 
-        if (!trimmedValue || trimmedValue === "Portfolio link") {
+        if (!trimmedValue) {
             return "#";
         }
 
@@ -1321,10 +1321,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const data = await apiFetchJSON(`/api/users/${targetUserId}`);
         const user = data.user;
         const profileDetails = {
-            bio: user.bio,
-            social: user.social || "@artist_handle",
-            portfolio: user.portfolio || "Portfolio link",
-            email: user.email
+            bio: user.bio || "",
+            social: user.social || "",
+            portfolio: user.portfolio || "",
+            email: user.contactEmail ?? user.email ?? ""
         };
 
         const nameTargets = document.querySelectorAll("[data-profile-name]");
@@ -1356,7 +1356,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
 
             if (emailLink) {
-                emailLink.href = `mailto:${profileDetails.email}`;
+                emailLink.href = profileDetails.email ? `mailto:${profileDetails.email}` : "#";
             }
 
             if (portfolioLink) {
@@ -1492,11 +1492,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         profileInlineEditForm?.addEventListener("submit", async (event) => {
             event.preventDefault();
 
-            const nextBio = profileBioInput?.value.trim() || profileDetails.bio;
-            const rawSocial = profileSocialInput?.value.trim() || profileDetails.social;
-            const nextSocial = rawSocial && !rawSocial.startsWith("@") ? `@${rawSocial}` : rawSocial;
-            const nextPortfolio = profilePortfolioInput?.value.trim() || profileDetails.portfolio;
-            const nextEmail = profileEmailInput?.value.trim().toLowerCase() || profileDetails.email;
+            const nextBio = profileBioInput?.value.trim() ?? profileDetails.bio;
+            const nextSocial = profileSocialInput?.value.trim() ?? profileDetails.social;
+            const nextPortfolio = profilePortfolioInput?.value.trim() ?? profileDetails.portfolio;
+            const nextEmail = profileEmailInput?.value.trim().toLowerCase() ?? profileDetails.email;
             const saveButton = profileInlineEditForm.querySelector('button[type="submit"]');
             const previousSaveText = saveButton?.textContent || "Save Profile";
 
@@ -1520,9 +1519,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
 
                 profileDetails.bio = saveData.user.bio;
-                profileDetails.social = saveData.user.social || nextSocial;
-                profileDetails.portfolio = saveData.user.portfolio || nextPortfolio;
-                profileDetails.email = saveData.user.email || nextEmail;
+                profileDetails.social = saveData.user.social ?? nextSocial;
+                profileDetails.portfolio = saveData.user.portfolio ?? nextPortfolio;
+                profileDetails.email = saveData.user.contactEmail ?? nextEmail;
                 currentUser = saveData.user;
                 signedInUser = saveData.user;
                 localStorage.setItem("currentUser", JSON.stringify(saveData.user));

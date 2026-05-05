@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
   email VARCHAR(190) NOT NULL,
+  contact_email VARCHAR(190) NULL,
   password_hash VARCHAR(255) NOT NULL,
   bio TEXT NOT NULL,
   social_handle VARCHAR(120) NOT NULL DEFAULT '@artist_handle',

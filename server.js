@@ -104,6 +104,7 @@ function sanitizeUser(user) {
         id: user.id,
         name: user.name,
         email: user.email,
+        contactEmail: user.contactEmail,
         bio: user.bio,
         social: user.social,
         portfolio: user.portfolio,
@@ -1298,25 +1299,17 @@ async function handleRequest(req, res) {
                 return;
             }
 
-            const nextEmail = String(email || "").trim().toLowerCase() || existingUser.email;
-            if (!isValidEmailAddress(nextEmail)) {
+            const nextContactEmail = email === undefined ? existingUser.contactEmail : String(email).trim().toLowerCase();
+            if (nextContactEmail && !isValidEmailAddress(nextContactEmail)) {
                 sendJSON(res, 400, { error: "Please enter a valid email address." });
                 return;
             }
 
-            if (nextEmail !== String(existingUser.email || "").toLowerCase()) {
-                const userWithEmail = await findUserByEmail(nextEmail);
-                if (userWithEmail && String(userWithEmail.id) !== String(userId)) {
-                    sendJSON(res, 409, { error: "An account with that email already exists." });
-                    return;
-                }
-            }
-
             const user = await updateUserProfile(userId, {
-                bio: String(bio || "").trim() || existingUser.bio,
-                social: String(social || "").trim() || existingUser.social || "@artist_handle",
-                portfolio: String(portfolio || "").trim() || existingUser.portfolio || "Portfolio link",
-                email: nextEmail
+                bio: bio === undefined ? existingUser.bio : String(bio).trim(),
+                social: social === undefined ? existingUser.social : String(social).trim(),
+                portfolio: portfolio === undefined ? existingUser.portfolio : String(portfolio).trim(),
+                contactEmail: nextContactEmail
             });
 
             sendJSON(res, 200, { user: sanitizeUser(user) });

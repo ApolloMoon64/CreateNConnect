@@ -48,6 +48,7 @@ function mapUser(row) {
         id: row.id,
         name: row.name,
         email: row.email,
+        contactEmail: row.contact_email === null || row.contact_email === undefined ? row.email : row.contact_email,
         bio: row.bio,
         social: row.social_handle,
         portfolio: row.portfolio_label,
@@ -201,6 +202,7 @@ async function initializeDatabase() {
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             name VARCHAR(120) NOT NULL,
             email VARCHAR(190) NOT NULL,
+            contact_email VARCHAR(190) NULL,
             password_hash VARCHAR(255) NOT NULL,
             bio TEXT NOT NULL,
             social_handle VARCHAR(120) NOT NULL DEFAULT '@artist_handle',
@@ -232,6 +234,18 @@ async function initializeDatabase() {
         await pool.query(`
             ALTER TABLE users
             ADD COLUMN portfolio_label VARCHAR(160) NOT NULL DEFAULT 'Portfolio link'
+        `);
+    }
+
+    if (!existingColumns.has("contact_email")) {
+        await pool.query(`
+            ALTER TABLE users
+            ADD COLUMN contact_email VARCHAR(190) NULL AFTER email
+        `);
+        await pool.query(`
+            UPDATE users
+            SET contact_email = email
+            WHERE contact_email IS NULL
         `);
     }
 
@@ -494,7 +508,7 @@ async function healthCheck() {
 
 async function findUserByEmail(email) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, password_hash, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, password_hash, bio, social_handle, portfolio_label, specialties, joined_at
          FROM users
          WHERE email = ?
          LIMIT 1`,
@@ -519,9 +533,9 @@ async function createUser({ name, email, passwordHash }) {
     const portfolio = "Portfolio link";
 
     const [result] = await pool.query(
-        `INSERT INTO users (name, email, password_hash, bio, social_handle, portfolio_label, specialties)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [name, email, passwordHash, bio, social, portfolio, specialties]
+        `INSERT INTO users (name, email, contact_email, password_hash, bio, social_handle, portfolio_label, specialties)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, email, email, passwordHash, bio, social, portfolio, specialties]
     );
 
     return getUserById(result.insertId);
@@ -529,7 +543,7 @@ async function createUser({ name, email, passwordHash }) {
 
 async function getUserById(id) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, bio, social_handle, portfolio_label, specialties, joined_at
          FROM users
          WHERE id = ?
          LIMIT 1`,
@@ -539,12 +553,12 @@ async function getUserById(id) {
     return mapUser(rows[0]);
 }
 
-async function updateUserProfile(id, { bio, social, portfolio, email }) {
+async function updateUserProfile(id, { bio, social, portfolio, contactEmail }) {
     await pool.query(
         `UPDATE users
-         SET bio = ?, social_handle = ?, portfolio_label = ?, email = ?
+         SET bio = ?, social_handle = ?, portfolio_label = ?, contact_email = ?
          WHERE id = ?`,
-        [bio, social, portfolio, email, id]
+        [bio, social, portfolio, contactEmail, id]
     );
 
     return getUserById(id);
