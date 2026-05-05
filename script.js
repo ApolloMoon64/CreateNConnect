@@ -168,6 +168,110 @@ document.addEventListener('DOMContentLoaded', () => {
         return modal;
     };
 
+    const ensureContactModal = () => {
+        let modal = document.getElementById('contact-modal');
+        if (modal) {
+            return modal;
+        }
+
+        modal = document.createElement('div');
+        modal.id = 'contact-modal';
+        modal.className = 'purchase-modal hidden';
+        modal.innerHTML = `
+            <div class="purchase-dialog glass-panel" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+                <button class="purchase-close" type="button" data-contact-close aria-label="Close contact form">
+                    <i class="ph ph-x"></i>
+                </button>
+                <p class="content-card-kicker">CreateNConnect</p>
+                <h2 id="contact-modal-title">Contact Us</h2>
+                <form id="contact-form" class="purchase-form">
+                    <label class="commission-form-field">
+                        <span>Name</span>
+                        <input class="auth-input" name="name" type="text" required>
+                    </label>
+                    <label class="commission-form-field">
+                        <span>Email</span>
+                        <input class="auth-input" name="email" type="email" required>
+                    </label>
+                    <label class="commission-form-field purchase-form-span">
+                        <span>Message</span>
+                        <textarea class="auth-input profile-content-textarea" name="message" maxlength="3000" required></textarea>
+                    </label>
+                    <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Send Message</button>
+                        <button class="btn btn-secondary" type="button" data-contact-close>Cancel</button>
+                    </div>
+                    <p class="purchase-status" data-contact-status aria-live="polite"></p>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('[data-contact-close]').forEach((button) => {
+            button.addEventListener('click', () => modal.classList.add('hidden'));
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        modal.querySelector('#contact-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = modal.querySelector('[data-contact-status]');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const formData = new FormData(form);
+
+            status.textContent = 'Sending message...';
+            submitButton.disabled = true;
+
+            try {
+                await apiFetchJSON('/api/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        message: formData.get('message')
+                    })
+                });
+
+                status.textContent = 'Message sent. Thank you for reaching out.';
+                form.reset();
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    status.textContent = '';
+                    submitButton.disabled = false;
+                }, 1400);
+            } catch (error) {
+                status.textContent = error.message;
+                submitButton.disabled = false;
+            }
+        });
+
+        return modal;
+    };
+
+    const openContactModal = () => {
+        const modal = ensureContactModal();
+        const form = modal.querySelector('#contact-form');
+        const status = modal.querySelector('[data-contact-status]');
+
+        form.reset();
+        form.elements.name.value = currentUser?.name || '';
+        form.elements.email.value = currentUser?.email || '';
+        status.textContent = '';
+        form.querySelector('button[type="submit"]').disabled = false;
+        modal.classList.remove('hidden');
+        form.elements.name.focus();
+    };
+
     const openPurchaseModal = (button) => {
         if (!currentUser?.id) {
             window.location.href = 'auth.html';
@@ -203,6 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         openPurchaseModal(purchaseButton);
     });
+
+    document.getElementById('contact-us-btn')?.addEventListener('click', openContactModal);
 
     const setupNotifications = () => {
         const bellButton = document.querySelector('.profile-section .icon-btn[aria-label="Notifications"]');

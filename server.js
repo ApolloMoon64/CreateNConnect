@@ -7,6 +7,7 @@ const { URL } = require("url");
 const {
     createCommunity,
     createCommunityMessage,
+    createContactMessage,
     createNotification,
     createPasswordResetToken,
     createPortfolioItem,
@@ -351,6 +352,10 @@ function getEmailFromAddress() {
     return process.env.EMAIL_FROM || process.env.MEETING_EMAIL_FROM || "";
 }
 
+function getSupportEmailAddress() {
+    return process.env.SUPPORT_EMAIL || getEmailFromAddress();
+}
+
 function getEmailTransporter() {
     if (!isEmailConfigured()) {
         return null;
@@ -522,6 +527,50 @@ async function sendPasswordResetEmail({ recipientEmail, recipientName, resetLink
     return { delivered: true };
 }
 
+async function sendContactMessageEmail({ name, email, message }) {
+    const transporter = getEmailTransporter();
+    const supportEmail = getSupportEmailAddress();
+
+    if (!transporter || !supportEmail) {
+        return { delivered: false, reason: "email_not_configured" };
+    }
+
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeMessage = escapeHtml(message).replaceAll("\n", "<br>");
+    const subject = `CreateNConnect contact message from ${name}`;
+    const text = [
+        "New CreateNConnect contact message",
+        "",
+        `Name: ${name}`,
+        `Email: ${email}`,
+        "",
+        "Message:",
+        message
+    ].join("\n");
+    const html = `
+        <div style="font-family: Outfit, Arial, sans-serif; color: #1e1e24; line-height: 1.6;">
+            <h2>New CreateNConnect contact message</h2>
+            <div style="padding: 1rem; border-radius: 16px; background: #f8fafc; border: 1px solid #dbeafe;">
+                <p><strong>Name:</strong> ${safeName}</p>
+                <p><strong>Email:</strong> ${safeEmail}</p>
+                <p><strong>Message:</strong><br>${safeMessage}</p>
+            </div>
+        </div>
+    `;
+
+    await transporter.sendMail({
+        from: getEmailFromAddress(),
+        to: supportEmail,
+        replyTo: email,
+        subject,
+        text,
+        html
+    });
+
+    return { delivered: true };
+}
+
 async function handleRequest(req, res) {
     const requestUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
     const { pathname } = requestUrl;
@@ -604,6 +653,53 @@ async function handleRequest(req, res) {
             await updateUserPasswordHash(resetToken.user_id, hashPassword(passwordText));
             await markPasswordResetTokenUsed(resetToken.id);
             sendJSON(res, 200, { success: true });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/contact") {
+            const { name, email, message } = await readBody(req);
+            const cleanName = String(name || "").trim();
+            const cleanEmail = String(email || "").trim().toLowerCase();
+            const cleanMessage = String(message || "").trim();
+
+            if (!cleanName || !cleanEmail || !cleanMessage) {
+                sendJSON(res, 400, { error: "Name, email, and message are required." });
+                return;
+            }
+
+            if (!isValidEmailAddress(cleanEmail)) {
+                sendJSON(res, 400, { error: "Please enter a valid email address." });
+                return;
+            }
+
+            if (cleanMessage.length > 3000) {
+                sendJSON(res, 400, { error: "Please keep the message under 3000 characters." });
+                return;
+            }
+
+            let emailResult = { delivered: false, reason: "email_not_configured" };
+
+            try {
+                emailResult = await sendContactMessageEmail({
+                    name: cleanName,
+                    email: cleanEmail,
+                    message: cleanMessage
+                });
+            } catch (error) {
+                emailResult = { delivered: false, reason: "email_failed" };
+            }
+
+            await createContactMessage({
+                name: cleanName,
+                email: cleanEmail,
+                message: cleanMessage,
+                delivered: emailResult.delivered
+            });
+
+            sendJSON(res, 200, {
+                success: true,
+                delivered: emailResult.delivered
+            });
             return;
         }
 

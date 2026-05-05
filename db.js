@@ -186,6 +186,21 @@ function mapFollowUser(row) {
     };
 }
 
+function mapContactMessage(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        message: row.message,
+        delivered: Boolean(row.delivered),
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
 async function initializeDatabase() {
     const bootstrapPool = mysql.createPool(basePoolConfig);
 
@@ -461,6 +476,19 @@ async function initializeDatabase() {
     `);
 
     await pool.query(`
+        CREATE TABLE IF NOT EXISTS contact_messages (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(160) NOT NULL,
+            email VARCHAR(190) NOT NULL,
+            message TEXT NOT NULL,
+            delivered TINYINT(1) NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY contact_messages_created_at_index (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS user_follows (
             follower_user_id BIGINT UNSIGNED NOT NULL,
             following_user_id BIGINT UNSIGNED NOT NULL,
@@ -571,6 +599,24 @@ async function updateUserPasswordHash(id, passwordHash) {
          WHERE id = ?`,
         [passwordHash, id]
     );
+}
+
+async function createContactMessage({ name, email, message, delivered }) {
+    const [result] = await pool.query(
+        `INSERT INTO contact_messages (name, email, message, delivered)
+         VALUES (?, ?, ?, ?)`,
+        [name, email, message, delivered ? 1 : 0]
+    );
+
+    const [rows] = await pool.query(
+        `SELECT id, name, email, message, delivered, created_at
+         FROM contact_messages
+         WHERE id = ?
+         LIMIT 1`,
+        [result.insertId]
+    );
+
+    return mapContactMessage(rows[0]);
 }
 
 async function deleteUserById(id) {
@@ -1186,6 +1232,7 @@ async function createCommunityMessage({ userId, communityId, body }) {
 module.exports = {
     createCommunity,
     createCommunityMessage,
+    createContactMessage,
     createNotification,
     createPasswordResetToken,
     createPortfolioItem,
