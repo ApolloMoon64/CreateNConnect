@@ -48,6 +48,8 @@ let messagePollTimer = null;
 let messagePollInFlight = false;
 const messagePollIntervalMs = 3000;
 
+removeExpiredMeetings();
+
 function saveCurrentUser(user) {
   const { profileImage, ...storageUser } = user || {};
   localStorage.setItem('currentUser', JSON.stringify(storageUser));
@@ -178,6 +180,13 @@ function bindEvents() {
     }
 
     const formData = new FormData(meetingForm);
+    const meetingDateTime = String(formData.get('datetime')).trim();
+
+    if (isPastMeeting({ dateTime: meetingDateTime })) {
+      meetingFormStatus.textContent = 'Please choose a future date and time for the meeting.';
+      return;
+    }
+
     const newMeeting = {
       id: crypto.randomUUID(),
       title: String(formData.get('title')).trim(),
@@ -185,7 +194,7 @@ function bindEvents() {
       region: String(formData.get('region')).trim(),
       capacity: Number(formData.get('capacity')),
       attendees: [],
-      dateTime: String(formData.get('datetime')).trim(),
+      dateTime: meetingDateTime,
       location: String(formData.get('location')).trim(),
       hostEmail: currentUser.email || '',
       description: String(formData.get('description')).trim(),
@@ -551,6 +560,8 @@ function renderChat({ scrollToBottom = false } = {}) {
 }
 
 function renderMeetings() {
+  removeExpiredMeetings();
+
   const filteredMeetings = getFilteredMeetings();
   meetingList.innerHTML = '';
 
@@ -684,12 +695,34 @@ function getFilteredCommunities() {
 }
 
 function getFilteredMeetings() {
-  if (selectedRegion === 'All') return meetings;
-  return meetings.filter((meeting) => meeting.region === selectedRegion);
+  const upcomingMeetings = meetings.filter((meeting) => !isPastMeeting(meeting));
+  if (selectedRegion === 'All') return upcomingMeetings;
+  return upcomingMeetings.filter((meeting) => meeting.region === selectedRegion);
 }
 
 function persistMeetings() {
   localStorage.setItem(meetingStorageKey, JSON.stringify(meetings));
+}
+
+function isPastMeeting(meeting) {
+  const meetingTime = new Date(meeting?.dateTime || '').getTime();
+
+  if (Number.isNaN(meetingTime)) {
+    return false;
+  }
+
+  return meetingTime < Date.now();
+}
+
+function removeExpiredMeetings() {
+  const activeMeetings = meetings.filter((meeting) => !isPastMeeting(meeting));
+
+  if (activeMeetings.length === meetings.length) {
+    return;
+  }
+
+  meetings = activeMeetings;
+  persistMeetings();
 }
 
 function readStorage(key, fallback) {
