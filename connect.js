@@ -53,6 +53,16 @@ function saveCurrentUser(user) {
   localStorage.setItem('currentUser', JSON.stringify(storageUser));
 }
 
+function requireSignedInForAction(actionLabel = 'use this feature') {
+  if (currentUser?.id && currentUser?.email) {
+    return true;
+  }
+
+  window.alert(`Please sign up or log in to ${actionLabel}.`);
+  window.location.href = 'auth.html';
+  return false;
+}
+
 const communityList = document.getElementById('community-list');
 const groupGrid = document.getElementById('group-grid');
 const chatThread = document.getElementById('chat-thread');
@@ -122,6 +132,10 @@ function bindEvents() {
   chatForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
+    if (!requireSignedInForAction('send group messages')) {
+      return;
+    }
+
     const formData = new FormData(chatForm);
     const message = String(formData.get('message') || '').trim();
     if (!message) return;
@@ -159,6 +173,10 @@ function bindEvents() {
   meetingForm.addEventListener('submit', (event) => {
     event.preventDefault();
 
+    if (!requireSignedInForAction('create Zoom meetings')) {
+      return;
+    }
+
     const formData = new FormData(meetingForm);
     const newMeeting = {
       id: crypto.randomUUID(),
@@ -185,6 +203,10 @@ function bindEvents() {
 
   communityForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    if (!requireSignedInForAction('create groups')) {
+      return;
+    }
 
     const formData = new FormData(communityForm);
     const payload = {
@@ -218,6 +240,10 @@ function bindEvents() {
   });
 
   quickCreateGroup.addEventListener('click', () => {
+    if (!requireSignedInForAction('create groups')) {
+      return;
+    }
+
     communityForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     communityForm.querySelector('input[name="name"]').focus();
   });
@@ -459,6 +485,10 @@ function renderGroups() {
     button.className = 'action-button';
     button.textContent = community.joined ? 'Open community' : 'Join community';
     button.addEventListener('click', async () => {
+      if (!requireSignedInForAction(community.joined ? 'open groups' : 'join groups')) {
+        return;
+      }
+
       try {
         if (!community.joined) {
           const data = await apiFetchJSON(`/api/communities/${encodeURIComponent(community.id)}/join`, {
@@ -563,6 +593,10 @@ function renderMeetings() {
     joinButton.textContent = isFull ? 'Meeting full' : 'Join meeting';
     joinButton.disabled = isFull;
     joinButton.addEventListener('click', async () => {
+      if (!requireSignedInForAction('join Zoom meetings')) {
+        return;
+      }
+
       const normalizedEmail = String(currentUser.email || '').trim().toLowerCase();
       if (!normalizedEmail) {
         window.alert('Please log in before joining a meeting so the invite can be sent to your account email.');
