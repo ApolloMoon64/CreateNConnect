@@ -1,7 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const currentUserRaw = localStorage.getItem('currentUser');
     const navAvatarImages = document.querySelectorAll('.profile-avatar img');
+    const anonymousAvatarSrc = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" rx="40" fill="%23e5e7eb"/%3E%3Ccircle cx="40" cy="32" r="14" fill="%236b7280"/%3E%3Cpath d="M18 68c3.8-14 13-22 22-22s18.2 8 22 22" fill="%236b7280"/%3E%3C/svg%3E';
     let currentUser = null;
+
+    const showAnonymousAvatar = () => {
+        navAvatarImages.forEach((image) => {
+            image.src = anonymousAvatarSrc;
+            image.alt = 'Guest profile icon';
+        });
+    };
 
     if (currentUserRaw && navAvatarImages.length) {
         try {
@@ -11,12 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             navAvatarImages.forEach((image) => {
                 image.src = avatarSrc;
+                image.alt = `${currentUser.name || 'Profile'} avatar`;
             });
-        } catch (error) {}
+        } catch (error) {
+            showAnonymousAvatar();
+        }
     } else if (currentUserRaw) {
         try {
             currentUser = JSON.parse(currentUserRaw);
-        } catch (error) {}
+        } catch (error) {
+            showAnonymousAvatar();
+        }
+    } else {
+        showAnonymousAvatar();
     }
 
     const readResponsePayload = async (response) => {
