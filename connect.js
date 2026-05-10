@@ -260,6 +260,7 @@ function bindEvents() {
 
 async function initializeConnectPage() {
   renderAll();
+  setMeetingFormEnabled(false);
   setCommunityFormsEnabled(false);
 
   try {
@@ -268,6 +269,8 @@ async function initializeConnectPage() {
     saveCurrentUser(currentUser);
     await loadCommunities();
     startMessagePolling();
+    setMeetingFormEnabled(true);
+    meetingFormStatus.textContent = 'New meetings appear instantly in the live board.';
     setCommunityFormsEnabled(true);
   } catch (error) {
     stopMessagePolling();
@@ -279,8 +282,10 @@ async function initializeConnectPage() {
     renderGroups();
     activeCommunityName.textContent = 'Community chat';
     chatThread.innerHTML = '<p class="muted-copy">Please log in to join communities and see shared messages.</p>';
+    meetingFormStatus.textContent = 'Log in to create a meeting.';
     communityFormStatus.textContent = 'Log in to create a community.';
     setChatEnabled(false);
+    setMeetingFormEnabled(false);
     setCommunityFormsEnabled(false);
   }
 }
@@ -783,6 +788,12 @@ function setChatEnabled(enabled) {
   const chatButton = chatForm.querySelector('button[type="submit"]');
   chatInput.disabled = !enabled;
   chatButton.disabled = !enabled;
+}
+
+function setMeetingFormEnabled(enabled) {
+  meetingForm.querySelectorAll('input, select, textarea, button').forEach((control) => {
+    control.disabled = !enabled;
+  });
 }
 
 function setCommunityFormsEnabled(enabled) {
