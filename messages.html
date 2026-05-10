@@ -43,25 +43,41 @@
         </div>
 
         <form id="new-message-form" class="new-message-form">
+          <p class="messages-section-label">New message</p>
+          <input name="recipientUserId" type="hidden">
           <label class="commission-form-field">
-            <span>User ID</span>
-            <input class="auth-input" name="recipientUserId" type="number" min="1" placeholder="Enter a profile user ID">
+            <span>Creator name</span>
+            <input class="auth-input" name="recipientName" type="text" list="message-user-suggestions" placeholder="Search by name" autocomplete="off">
+            <datalist id="message-user-suggestions"></datalist>
           </label>
           <label class="commission-form-field">
             <span>Message</span>
-            <textarea class="auth-input" name="message" rows="3" placeholder="Start a conversation"></textarea>
+            <textarea class="auth-input" name="message" rows="2" placeholder="Start a conversation"></textarea>
           </label>
           <button class="btn btn-primary" type="submit">Send Message</button>
           <p id="new-message-status" class="muted-copy"></p>
         </form>
 
+        <p class="messages-section-label">Conversations</p>
         <div id="conversation-list" class="conversation-list"></div>
       </section>
 
       <section class="messages-panel glass-panel">
+        <div id="conversation-header" class="conversation-header">
+          <div class="conversation-header-avatar">
+            <i class="ph ph-chat-circle-text"></i>
+          </div>
+          <div>
+            <p class="content-card-kicker">Conversation</p>
+            <h2>Choose a creator</h2>
+          </div>
+        </div>
         <div id="trade-panel" class="trade-detail-panel is-hidden"></div>
         <div id="message-thread" class="message-thread">
-          <p class="muted-copy">Choose a conversation to view messages.</p>
+          <div class="message-empty-state">
+            <i class="ph ph-chat-circle-text"></i>
+            <p>Choose a conversation to view messages.</p>
+          </div>
         </div>
         <form id="conversation-message-form" class="conversation-message-form">
           <input class="auth-input" name="body" type="text" placeholder="Write a message..." autocomplete="off">

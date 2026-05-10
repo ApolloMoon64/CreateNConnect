@@ -54,6 +54,7 @@ const {
     markNotificationRead,
     markPasswordResetTokenUsed,
     unfollowUser,
+    searchUsersByName,
     updateUserPasswordHash,
     updateTradeStatus,
     updateUserProfile
@@ -1040,6 +1041,23 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "GET" && pathname === "/api/messages/users") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const query = parsedUrl.searchParams.get("q") || "";
+            const users = await searchUsersByName(query, {
+                excludeUserId: authenticatedUser.id,
+                limit: 8
+            });
+
+            sendJSON(res, 200, { users });
+            return;
+        }
+
         if (req.method === "POST" && pathname === "/api/messages/conversations") {
             const authenticatedUser = await requireAuthenticatedUser(req, res);
 
@@ -1047,12 +1065,35 @@ async function handleRequest(req, res) {
                 return;
             }
 
-            const { recipientUserId, message } = await readBody(req);
-            const recipientId = String(recipientUserId || "").trim();
+            const { recipientUserId, recipientName, message } = await readBody(req);
+            let recipientId = String(recipientUserId || "").trim();
+            const cleanRecipientName = String(recipientName || "").trim();
             const body = String(message || "").trim();
 
-            if (!recipientId || !body) {
-                sendJSON(res, 400, { error: "Recipient and message are required." });
+            if (!body) {
+                sendJSON(res, 400, { error: "Message is required." });
+                return;
+            }
+
+            if (!recipientId && cleanRecipientName) {
+                const matches = await searchUsersByName(cleanRecipientName, {
+                    excludeUserId: authenticatedUser.id,
+                    limit: 10
+                });
+                const exactMatches = matches.filter(
+                    (user) => user.name.toLowerCase() === cleanRecipientName.toLowerCase()
+                );
+
+                if (exactMatches.length === 1) {
+                    recipientId = String(exactMatches[0].id);
+                } else if (exactMatches.length > 1) {
+                    sendJSON(res, 400, { error: "More than one creator uses that name. Open their profile and click Message." });
+                    return;
+                }
+            }
+
+            if (!recipientId) {
+                sendJSON(res, 400, { error: "Choose a creator by name." });
                 return;
             }
 

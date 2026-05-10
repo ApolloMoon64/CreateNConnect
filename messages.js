@@ -1,9 +1,11 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const conversationList = document.getElementById("conversation-list");
+    const conversationHeader = document.getElementById("conversation-header");
     const messageThread = document.getElementById("message-thread");
     const messageForm = document.getElementById("conversation-message-form");
     const newMessageForm = document.getElementById("new-message-form");
     const newMessageStatus = document.getElementById("new-message-status");
+    const userSuggestions = document.getElementById("message-user-suggestions");
     const tradePanel = document.getElementById("trade-panel");
     const pageParams = new URLSearchParams(window.location.search);
     const initialConversationId = pageParams.get("conversationId");
@@ -11,8 +13,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let currentUser = null;
     let conversations = [];
+    let suggestedUsers = [];
     let activeConversationId = initialConversationId || "";
     let pollTimer = null;
+    let searchTimer = null;
 
     const readResponsePayload = async (response) => {
         const raw = await response.text();
@@ -51,6 +55,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         }).format(new Date(value));
     };
 
+    const getInitials = (name) => String(name || "Creator")
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join("") || "CN";
+
     const saveCurrentUser = (user) => {
         const { profileImage, ...storageUser } = user || {};
         localStorage.setItem("currentUser", JSON.stringify(storageUser));
@@ -79,15 +90,53 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderConversationList();
     };
 
+    const loadUserById = async (userId) => {
+        const data = await apiFetchJSON(`/api/users/${encodeURIComponent(userId)}`);
+        return data.user;
+    };
+
+    const searchUsers = async (query) => {
+        const cleanQuery = String(query || "").trim();
+
+        if (cleanQuery.length < 2) {
+            suggestedUsers = [];
+            if (userSuggestions) userSuggestions.innerHTML = "";
+            return;
+        }
+
+        const data = await apiFetchJSON(`/api/messages/users?q=${encodeURIComponent(cleanQuery)}`);
+        suggestedUsers = data.users || [];
+
+        if (userSuggestions) {
+            userSuggestions.innerHTML = suggestedUsers.map((user) => `
+                <option value="${escapeHtml(user.name)}"></option>
+            `).join("");
+        }
+    };
+
+    const syncSelectedRecipient = () => {
+        if (!newMessageForm) return;
+
+        const nameInput = newMessageForm.elements.recipientName;
+        const idInput = newMessageForm.elements.recipientUserId;
+        const selectedName = String(nameInput.value || "").trim().toLowerCase();
+        const selectedUser = suggestedUsers.find((user) => user.name.toLowerCase() === selectedName);
+
+        idInput.value = selectedUser ? selectedUser.id : "";
+    };
+
     const renderConversationList = () => {
         if (!conversationList) return;
 
         conversationList.innerHTML = conversations.length
             ? conversations.map((conversation) => `
                 <button class="conversation-list-item${String(conversation.id) === String(activeConversationId) ? " active" : ""}" type="button" data-conversation-id="${conversation.id}">
-                    <strong>${escapeHtml(conversation.otherUserName || "Conversation")}</strong>
-                    <span>${conversation.kind === "trade" ? `Trade: ${escapeHtml(conversation.tradeStatus || "pending")}` : "Direct message"}</span>
-                    <small>${escapeHtml(conversation.lastMessage || "No messages yet")}</small>
+                    <span class="conversation-avatar">${escapeHtml(getInitials(conversation.otherUserName))}</span>
+                    <span class="conversation-list-copy">
+                        <strong>${escapeHtml(conversation.otherUserName || "Conversation")}</strong>
+                        <span>${conversation.kind === "trade" ? `Trade: ${escapeHtml(conversation.tradeStatus || "pending")}` : "Direct message"}</span>
+                        <small>${escapeHtml(conversation.lastMessage || "No messages yet")}</small>
+                    </span>
                 </button>
             `).join("")
             : '<p class="muted-copy">No conversations yet.</p>';
@@ -99,6 +148,39 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await loadActiveConversation();
             });
         });
+    };
+
+    const renderConversationHeader = (conversation) => {
+        if (!conversationHeader) return;
+
+        if (!conversation) {
+            conversationHeader.innerHTML = `
+                <div class="conversation-header-avatar">
+                    <i class="ph ph-chat-circle-text"></i>
+                </div>
+                <div>
+                    <p class="content-card-kicker">Conversation</p>
+                    <h2>Choose a creator</h2>
+                </div>
+            `;
+            return;
+        }
+
+        conversationHeader.innerHTML = `
+            <div class="conversation-header-avatar">${escapeHtml(getInitials(conversation.otherUserName))}</div>
+            <div>
+                <p class="content-card-kicker">${conversation.kind === "trade" ? "Trade conversation" : "Direct message"}</p>
+                <h2>${escapeHtml(conversation.otherUserName || "Conversation")}</h2>
+                <a href="profile.html?userId=${encodeURIComponent(conversation.otherUserId)}">View profile</a>
+            </div>
+        `;
+    };
+
+    const setComposerEnabled = (enabled) => {
+        if (!messageForm) return;
+
+        messageForm.elements.body.disabled = !enabled;
+        messageForm.querySelector('button[type="submit"]').disabled = !enabled;
     };
 
     const renderTradePanel = (conversation) => {
@@ -146,8 +228,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const loadActiveConversation = async () => {
         if (!activeConversationId) {
-            messageThread.innerHTML = '<p class="muted-copy">Choose a conversation to view messages.</p>';
+            renderConversationHeader(null);
+            messageThread.innerHTML = `
+                <div class="message-empty-state">
+                    <i class="ph ph-chat-circle-text"></i>
+                    <p>Choose a conversation to view messages.</p>
+                </div>
+            `;
             renderTradePanel(null);
+            setComposerEnabled(false);
             return;
         }
 
@@ -155,7 +244,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const conversation = data.conversation;
         const messages = data.messages || [];
 
+        renderConversationHeader(conversation);
         renderTradePanel(conversation);
+        setComposerEnabled(true);
         messageThread.innerHTML = messages.length
             ? messages.map((message) => `
                 <article class="direct-message${String(message.userId) === String(currentUser.id) ? " self" : ""}">
@@ -195,10 +286,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const formData = new FormData(newMessageForm);
         const recipientUserId = String(formData.get("recipientUserId") || "").trim();
+        const recipientName = String(formData.get("recipientName") || "").trim();
         const message = String(formData.get("message") || "").trim();
 
-        if (!recipientUserId || !message) {
-            newMessageStatus.textContent = "Enter a user ID and message.";
+        if ((!recipientUserId && !recipientName) || !message) {
+            newMessageStatus.textContent = "Choose a creator and enter a message.";
             return;
         }
 
@@ -206,7 +298,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const data = await apiFetchJSON("/api/messages/conversations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ recipientUserId, message })
+                body: JSON.stringify({ recipientUserId, recipientName, message })
             });
             activeConversationId = String(data.conversation.id);
             newMessageForm.reset();
@@ -218,11 +310,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
+    newMessageForm?.elements.recipientName?.addEventListener("input", () => {
+        const query = newMessageForm.elements.recipientName.value;
+        newMessageForm.elements.recipientUserId.value = "";
+
+        if (searchTimer) {
+            window.clearTimeout(searchTimer);
+        }
+
+        searchTimer = window.setTimeout(async () => {
+            try {
+                await searchUsers(query);
+                syncSelectedRecipient();
+            } catch (error) {
+                newMessageStatus.textContent = error.message;
+            }
+        }, 250);
+    });
+
+    newMessageForm?.elements.recipientName?.addEventListener("change", syncSelectedRecipient);
+
     currentUser = await loadCurrentUser();
     if (!currentUser) return;
 
     if (initialRecipientUserId && newMessageForm?.elements.recipientUserId) {
         newMessageForm.elements.recipientUserId.value = initialRecipientUserId;
+        try {
+            const user = await loadUserById(initialRecipientUserId);
+            suggestedUsers = [user];
+            if (newMessageForm.elements.recipientName) {
+                newMessageForm.elements.recipientName.value = user.name || "";
+            }
+        } catch (error) {
+            newMessageStatus.textContent = error.message;
+        }
         newMessageForm.elements.message.focus();
     }
 

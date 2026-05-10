@@ -709,6 +709,28 @@ async function getUserById(id) {
     return mapUser(rows[0]);
 }
 
+async function searchUsersByName(query, { excludeUserId = null, limit = 8 } = {}) {
+    const cleanQuery = String(query || "").trim();
+
+    if (!cleanQuery) {
+        return [];
+    }
+
+    const [rows] = await pool.query(
+        `SELECT id, name, email, bio, joined_at
+         FROM users
+         WHERE name LIKE ?
+           AND (? IS NULL OR id <> ?)
+         ORDER BY
+           CASE WHEN LOWER(name) = LOWER(?) THEN 0 ELSE 1 END,
+           name ASC
+         LIMIT ?`,
+        [`%${cleanQuery}%`, excludeUserId, excludeUserId, cleanQuery, Number(limit) || 8]
+    );
+
+    return rows.map(mapFollowUser);
+}
+
 async function updateUserProfile(id, { bio, social, portfolio, contactEmail, profileImage }) {
     await pool.query(
         `UPDATE users
@@ -1650,6 +1672,7 @@ module.exports = {
     markNotificationRead,
     markPasswordResetTokenUsed,
     pool,
+    searchUsersByName,
     unfollowUser,
     updateUserPasswordHash,
     updateTradeStatus,
