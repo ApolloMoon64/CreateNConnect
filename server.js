@@ -8,6 +8,8 @@ const {
     createCommunity,
     createCommunityMessage,
     createContactMessage,
+    createConversationMessage,
+    createDirectConversation,
     createNotification,
     createPasswordResetToken,
     createPortfolioItem,
@@ -15,6 +17,7 @@ const {
     createPost,
     createPurchase,
     createTutorial,
+    createTradeConversation,
     createUser,
     deleteCommissionById,
     deletePortfolioItemById,
@@ -24,6 +27,7 @@ const {
     findUserByEmail,
     followUser,
     getCommunityById,
+    getConversationForUser,
     getFollowSummary,
     getPurchasableItem,
     getValidPasswordResetToken,
@@ -34,6 +38,8 @@ const {
     listAllTutorials,
     listCommunitiesForUser,
     listCommunityMessages,
+    listConversationMessages,
+    listConversationsForUser,
     listNotificationsForUser,
     listCommissionsByUserId,
     listFollowers,
@@ -41,12 +47,15 @@ const {
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
+    listUserArtworks,
     joinCommunity,
     markAllNotificationsRead,
+    markArtworkTraded,
     markNotificationRead,
     markPasswordResetTokenUsed,
     unfollowUser,
     updateUserPasswordHash,
+    updateTradeStatus,
     updateUserProfile
 } = require("./db");
 
@@ -843,6 +852,11 @@ async function handleRequest(req, res) {
                 return;
             }
 
+            if (item.availabilityStatus !== "available") {
+                sendJSON(res, 409, { error: "This artwork is no longer available." });
+                return;
+            }
+
             if (String(item.userId) === String(authenticatedUser.id)) {
                 sendJSON(res, 400, { error: "You cannot purchase your own artwork." });
                 return;
@@ -999,6 +1013,282 @@ async function handleRequest(req, res) {
             });
 
             sendJSON(res, 201, { message });
+            return;
+        }
+
+        if (req.method === "GET" && pathname === "/api/my-artworks") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const artworks = await listUserArtworks(authenticatedUser.id);
+            sendJSON(res, 200, { artworks });
+            return;
+        }
+
+        if (req.method === "GET" && pathname === "/api/messages/conversations") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const conversations = await listConversationsForUser(authenticatedUser.id);
+            sendJSON(res, 200, { conversations });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/messages/conversations") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const { recipientUserId, message } = await readBody(req);
+            const recipientId = String(recipientUserId || "").trim();
+            const body = String(message || "").trim();
+
+            if (!recipientId || !body) {
+                sendJSON(res, 400, { error: "Recipient and message are required." });
+                return;
+            }
+
+            if (String(recipientId) === String(authenticatedUser.id)) {
+                sendJSON(res, 400, { error: "You cannot message yourself." });
+                return;
+            }
+
+            const recipient = await getUserById(recipientId);
+            if (!recipient) {
+                sendJSON(res, 404, { error: "User not found." });
+                return;
+            }
+
+            const conversation = await createDirectConversation({
+                userAId: authenticatedUser.id,
+                userBId: recipientId
+            });
+            const directMessage = await createConversationMessage({
+                conversationId: conversation.id,
+                userId: authenticatedUser.id,
+                body
+            });
+
+            await createNotification({
+                userId: recipientId,
+                actorUserId: authenticatedUser.id,
+                title: "New message",
+                body: `${authenticatedUser.name} sent you a message.`,
+                linkUrl: `messages.html?conversationId=${encodeURIComponent(conversation.id)}`
+            });
+
+            sendJSON(res, 201, { conversation, message: directMessage });
+            return;
+        }
+
+        if (req.method === "GET" && pathname.match(/^\/api\/messages\/conversations\/[^/]+\/messages$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const conversationId = pathname.split("/")[4];
+            const data = await listConversationMessages({
+                conversationId,
+                userId: authenticatedUser.id
+            });
+
+            if (!data) {
+                sendJSON(res, 404, { error: "Conversation not found." });
+                return;
+            }
+
+            sendJSON(res, 200, data);
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/messages\/conversations\/[^/]+\/messages$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const conversationId = pathname.split("/")[4];
+            const conversation = await getConversationForUser({
+                conversationId,
+                userId: authenticatedUser.id
+            });
+
+            if (!conversation) {
+                sendJSON(res, 404, { error: "Conversation not found." });
+                return;
+            }
+
+            const { body } = await readBody(req);
+            const cleanBody = String(body || "").trim();
+
+            if (!cleanBody) {
+                sendJSON(res, 400, { error: "Message text is required." });
+                return;
+            }
+
+            const message = await createConversationMessage({
+                conversationId,
+                userId: authenticatedUser.id,
+                body: cleanBody
+            });
+
+            await createNotification({
+                userId: conversation.otherUserId,
+                actorUserId: authenticatedUser.id,
+                title: "New message",
+                body: `${authenticatedUser.name} sent you a message.`,
+                linkUrl: `messages.html?conversationId=${encodeURIComponent(conversation.id)}`
+            });
+
+            sendJSON(res, 201, { message });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/trades") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const {
+                requestedItemType,
+                requestedItemId,
+                offeredItemType,
+                offeredItemId,
+                message
+            } = await readBody(req);
+            const requestedItem = await getPurchasableItem(requestedItemType, requestedItemId);
+            const offeredItem = await getPurchasableItem(offeredItemType, offeredItemId);
+
+            if (!requestedItem || !offeredItem) {
+                sendJSON(res, 404, { error: "One of the trade artworks was not found." });
+                return;
+            }
+
+            if (requestedItem.availabilityStatus !== "available" || offeredItem.availabilityStatus !== "available") {
+                sendJSON(res, 409, { error: "One of the trade artworks is no longer available." });
+                return;
+            }
+
+            if (String(requestedItem.userId) === String(authenticatedUser.id)) {
+                sendJSON(res, 400, { error: "You cannot request a trade for your own artwork." });
+                return;
+            }
+
+            if (String(offeredItem.userId) !== String(authenticatedUser.id)) {
+                sendJSON(res, 403, { error: "You can only offer your own artwork." });
+                return;
+            }
+
+            const conversation = await createTradeConversation({
+                requesterUserId: authenticatedUser.id,
+                requestedItem,
+                offeredItem,
+                message: String(message || `Trade request: "${offeredItem.title}" for "${requestedItem.title}".`).trim()
+            });
+
+            await createNotification({
+                userId: requestedItem.userId,
+                actorUserId: authenticatedUser.id,
+                title: "New trade request",
+                body: `${authenticatedUser.name} offered "${offeredItem.title}" for "${requestedItem.title}".`,
+                linkUrl: `messages.html?conversationId=${encodeURIComponent(conversation.id)}`
+            });
+
+            sendJSON(res, 201, { conversation });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/trades\/[^/]+\/(accept|decline)$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const [, , , conversationId, action] = pathname.split("/");
+            const conversation = await getConversationForUser({
+                conversationId,
+                userId: authenticatedUser.id
+            });
+
+            if (!conversation || conversation.kind !== "trade") {
+                sendJSON(res, 404, { error: "Trade conversation not found." });
+                return;
+            }
+
+            if (String(conversation.requestedOwnerUserId) !== String(authenticatedUser.id)) {
+                sendJSON(res, 403, { error: "Only the requested artwork owner can decide this trade." });
+                return;
+            }
+
+            if (conversation.tradeStatus !== "pending") {
+                sendJSON(res, 409, { error: "This trade has already been decided." });
+                return;
+            }
+
+            const nextStatus = action === "accept" ? "accepted" : "declined";
+
+            if (nextStatus === "accepted") {
+                const requestedItem = await getPurchasableItem(conversation.requestedItemType, conversation.requestedItemId);
+                const offeredItem = await getPurchasableItem(conversation.offeredItemType, conversation.offeredItemId);
+
+                if (
+                    !requestedItem ||
+                    !offeredItem ||
+                    requestedItem.availabilityStatus !== "available" ||
+                    offeredItem.availabilityStatus !== "available"
+                ) {
+                    sendJSON(res, 409, { error: "One of the artworks is no longer available for trade." });
+                    return;
+                }
+
+                const requestedMarked = await markArtworkTraded({
+                    itemType: conversation.requestedItemType,
+                    itemId: conversation.requestedItemId
+                });
+                const offeredMarked = await markArtworkTraded({
+                    itemType: conversation.offeredItemType,
+                    itemId: conversation.offeredItemId
+                });
+
+                if (!requestedMarked || !offeredMarked) {
+                    sendJSON(res, 409, { error: "One of the artworks is no longer available for trade." });
+                    return;
+                }
+            }
+
+            const updatedConversation = await updateTradeStatus({
+                conversationId,
+                status: nextStatus
+            });
+            await createConversationMessage({
+                conversationId,
+                userId: authenticatedUser.id,
+                body: nextStatus === "accepted" ? "Trade accepted." : "Trade declined."
+            });
+
+            await createNotification({
+                userId: conversation.offeredOwnerUserId,
+                actorUserId: authenticatedUser.id,
+                title: nextStatus === "accepted" ? "Trade accepted" : "Trade declined",
+                body: `${authenticatedUser.name} ${nextStatus} your trade request.`,
+                linkUrl: `messages.html?conversationId=${encodeURIComponent(conversation.id)}`
+            });
+
+            sendJSON(res, 200, { conversation: updatedConversation });
             return;
         }
 

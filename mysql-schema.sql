@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS commissions (
   category VARCHAR(80) NOT NULL DEFAULT 'digital',
   price DECIMAL(10,2) NOT NULL,
   image LONGTEXT NOT NULL,
+  availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY commissions_user_id_index (user_id),
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS posts (
   title VARCHAR(160) NOT NULL,
   caption TEXT NOT NULL,
   media_url LONGTEXT NOT NULL,
+  availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY posts_user_id_index (user_id),
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS portfolio_items (
   title VARCHAR(160) NOT NULL,
   summary TEXT NOT NULL,
   image_url LONGTEXT NOT NULL,
+  availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY portfolio_items_user_id_index (user_id),
@@ -71,6 +74,7 @@ CREATE TABLE IF NOT EXISTS tutorials (
   description TEXT NOT NULL,
   image_url LONGTEXT NOT NULL,
   media_type VARCHAR(16) NOT NULL DEFAULT 'image',
+  availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY tutorials_user_id_index (user_id),
@@ -205,5 +209,56 @@ CREATE TABLE IF NOT EXISTS user_follows (
     ON DELETE CASCADE,
   CONSTRAINT user_follows_following_user_id_fk
     FOREIGN KEY (following_user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_a_id BIGINT UNSIGNED NOT NULL,
+  user_b_id BIGINT UNSIGNED NOT NULL,
+  kind VARCHAR(24) NOT NULL DEFAULT 'direct',
+  trade_status VARCHAR(24) NULL,
+  requested_item_type VARCHAR(40) NULL,
+  requested_item_id BIGINT UNSIGNED NULL,
+  requested_item_title VARCHAR(160) NULL,
+  requested_owner_user_id BIGINT UNSIGNED NULL,
+  offered_item_type VARCHAR(40) NULL,
+  offered_item_id BIGINT UNSIGNED NULL,
+  offered_item_title VARCHAR(160) NULL,
+  offered_owner_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY conversations_user_a_id_index (user_a_id),
+  KEY conversations_user_b_id_index (user_b_id),
+  KEY conversations_updated_at_index (updated_at),
+  CONSTRAINT conversations_user_a_id_fk
+    FOREIGN KEY (user_a_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  CONSTRAINT conversations_user_b_id_fk
+    FOREIGN KEY (user_b_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+  CONSTRAINT conversations_requested_owner_user_id_fk
+    FOREIGN KEY (requested_owner_user_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+  CONSTRAINT conversations_offered_owner_user_id_fk
+    FOREIGN KEY (offered_owner_user_id) REFERENCES users(id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY conversation_messages_conversation_id_index (conversation_id, id),
+  KEY conversation_messages_user_id_index (user_id),
+  CONSTRAINT conversation_messages_conversation_id_fk
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+    ON DELETE CASCADE,
+  CONSTRAINT conversation_messages_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

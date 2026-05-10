@@ -95,6 +95,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const renderCommission = (commission) => {
         const isOwner = String(commission.userId) === String(currentUser.id);
+        const isAvailable = commission.availabilityStatus === "available";
+        const buyerActions = isAvailable
+            ? `<div class="commission-card-actions">
+                <button
+                    class="btn btn-primary purchase-art-btn"
+                    type="button"
+                    data-purchase-item-type="commission"
+                    data-purchase-item-id="${encodeURIComponent(commission.id)}"
+                    data-purchase-title="${encodeURIComponent(commission.title)}"
+                    data-purchase-artist="${encodeURIComponent(commission.artist)}"
+                    data-purchase-price="${encodeURIComponent(`$${Number(commission.price).toFixed(2)}`)}"
+                >
+                    Purchase
+                </button>
+                <button
+                    class="btn btn-secondary trade-art-btn"
+                    type="button"
+                    data-trade-item-type="commission"
+                    data-trade-item-id="${encodeURIComponent(commission.id)}"
+                    data-trade-title="${encodeURIComponent(commission.title)}"
+                    data-trade-artist="${encodeURIComponent(commission.artist)}"
+                >
+                    Trade
+                </button>
+            </div>`
+            : `<span class="content-card-status">${commission.availabilityStatus === "traded" ? "Traded" : "Unavailable"}</span>`;
 
         return `
             <article class="commission-card glass-panel" data-commission-id="${commission.id}">
@@ -109,17 +135,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <p>$${Number(commission.price).toFixed(2)}</p>
                 ${isOwner
                     ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`
-                    : `<button
-                        class="btn btn-primary purchase-art-btn"
-                        type="button"
-                        data-purchase-item-type="commission"
-                        data-purchase-item-id="${encodeURIComponent(commission.id)}"
-                        data-purchase-title="${encodeURIComponent(commission.title)}"
-                        data-purchase-artist="${encodeURIComponent(commission.artist)}"
-                        data-purchase-price="${encodeURIComponent(`$${Number(commission.price).toFixed(2)}`)}"
-                    >
-                        Purchase
-                    </button>`}
+                    : buyerActions}
             </article>
         `;
     };

@@ -228,6 +228,9 @@ a {
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.68);
     border: 1px solid rgba(148, 163, 184, 0.2);
+    color: inherit;
+    display: block;
+    text-decoration: none;
 }
 
 .notification-item.unread {
@@ -1209,6 +1212,12 @@ a {
     border-color: rgba(37, 99, 235, 0.18);
 }
 
+.profile-message-btn {
+    color: #15803d;
+    background: rgba(220, 252, 231, 0.92);
+    border-color: rgba(34, 197, 94, 0.22);
+}
+
 .profile-bio-card {
     padding: 1.35rem;
     border-radius: 24px;
@@ -1600,6 +1609,31 @@ a {
     width: fit-content;
 }
 
+.content-card-actions,
+.commission-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.content-card-trade {
+    width: fit-content;
+}
+
+.content-card-status {
+    width: fit-content;
+    border: 1px solid rgba(100, 116, 139, 0.22);
+    border-radius: 999px;
+    background: rgba(241, 245, 249, 0.94);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 0.45rem 0.7rem;
+    text-transform: uppercase;
+}
+
 .content-card-copy {
     color: var(--text-secondary);
     line-height: 1.55;
@@ -1672,6 +1706,142 @@ a {
     min-height: 1.4rem;
     color: var(--accent-color);
     font-weight: 700;
+}
+
+.messages-shell {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) 1fr;
+    gap: 1.25rem;
+    padding: 1.25rem;
+}
+
+.messages-sidebar,
+.messages-panel {
+    padding: 1.25rem;
+}
+
+.messages-title {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.new-message-form {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1rem 0;
+}
+
+.conversation-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.conversation-list-item {
+    border: 1px solid var(--surface-border);
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 14px;
+    padding: 0.85rem;
+    display: grid;
+    gap: 0.25rem;
+    text-align: left;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.conversation-list-item.active,
+.conversation-list-item:hover {
+    border-color: rgba(37, 99, 235, 0.45);
+    background: rgba(219, 234, 254, 0.8);
+}
+
+.conversation-list-item span,
+.conversation-list-item small {
+    color: var(--text-secondary);
+}
+
+.messages-panel {
+    display: grid;
+    grid-template-rows: auto minmax(360px, 1fr) auto;
+    gap: 1rem;
+    min-height: 640px;
+}
+
+.trade-detail-panel {
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    background: rgba(239, 246, 255, 0.8);
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.trade-detail-panel.is-hidden {
+    display: none;
+}
+
+.trade-detail-panel h2 {
+    margin: 0.15rem 0;
+    font-size: 1.15rem;
+}
+
+.trade-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.message-thread {
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-right: 0.4rem;
+}
+
+.direct-message {
+    max-width: 76%;
+    border: 1px solid var(--surface-border);
+    background: rgba(255, 255, 255, 0.82);
+    border-radius: 16px;
+    padding: 0.8rem 0.95rem;
+}
+
+.direct-message.self {
+    align-self: flex-end;
+    background: #dbeafe;
+    border-color: rgba(37, 99, 235, 0.24);
+}
+
+.direct-message div {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.direct-message p {
+    margin: 0.35rem 0 0;
+    color: var(--text-primary);
+    line-height: 1.45;
+}
+
+.conversation-message-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .messages-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .messages-panel {
+        min-height: 520px;
+    }
 }
 
 .post-empty-card {

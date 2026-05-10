@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="top-nav glass-panel">
+      <div class="nav-links">
+        <a href="index.html" class="nav-item"><i class="ph ph-house"></i> Home</a>
+        <a href="commissions.html" class="nav-item"><i class="ph ph-palette"></i> Commissions</a>
+        <a href="connect.html" class="nav-item"><i class="ph ph-users"></i> Connect</a>
+        <a href="messages.html" class="nav-item active"><i class="ph ph-chat-circle-text"></i> Messages</a>
+        <a href="auth.html" class="nav-item"><i class="ph ph-user"></i> Sign up / Log In</a>
+        <a href="settings.html" class="nav-item"><i class="ph ph-gear"></i> Settings</a>
+      </div>
+
+      <div class="profile-section">
+        <button class="icon-btn" aria-label="Notifications">
+          <i class="ph ph-bell"></i>
+          <span class="notification-dot"></span>
+        </button>
+        <a class="profile-avatar" href="profile.html" aria-label="Open artist profile">
+          <img src="https://ui-avatars.com/api/?name=Artist&background=2563eb&color=fff" alt="Profile avatar">
+        </a>
+      </div>
+    </header>
+
+    <main class="messages-shell">
+      <section class="messages-sidebar glass-panel">
+        <div class="messages-header">
+          <div>
+            <p class="content-card-kicker">Inbox</p>
+            <h1 class="messages-title">Messages</h1>
+          </div>
+        </div>
+
+        <form id="new-message-form" class="new-message-form">
+          <label class="commission-form-field">
+            <span>User ID</span>
+            <input class="auth-input" name="recipientUserId" type="number" min="1" placeholder="Enter a profile user ID">
+          </label>
+          <label class="commission-form-field">
+            <span>Message</span>
+            <textarea class="auth-input" name="message" rows="3" placeholder="Start a conversation"></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit">Send Message</button>
+          <p id="new-message-status" class="muted-copy"></p>
+        </form>
+
+        <div id="conversation-list" class="conversation-list"></div>
+      </section>
+
+      <section class="messages-panel glass-panel">
+        <div id="trade-panel" class="trade-detail-panel is-hidden"></div>
+        <div id="message-thread" class="message-thread">
+          <p class="muted-copy">Choose a conversation to view messages.</p>
+        </div>
+        <form id="conversation-message-form" class="conversation-message-form">
+          <input class="auth-input" name="body" type="text" placeholder="Write a message..." autocomplete="off">
+          <button class="btn btn-primary" type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="themer.js"></script>
+  <script src="script.js"></script>
+  <script src="messages.js"></script>
+</body>
+</html>

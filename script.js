@@ -182,6 +182,96 @@ document.addEventListener('DOMContentLoaded', () => {
         return modal;
     };
 
+    const ensureTradeModal = () => {
+        let modal = document.getElementById('trade-modal');
+        if (modal) {
+            return modal;
+        }
+
+        modal = document.createElement('div');
+        modal.id = 'trade-modal';
+        modal.className = 'purchase-modal hidden';
+        modal.innerHTML = `
+            <div class="purchase-dialog glass-panel" role="dialog" aria-modal="true" aria-labelledby="trade-modal-title">
+                <button class="purchase-close" type="button" data-trade-close aria-label="Close trade form">
+                    <i class="ph ph-x"></i>
+                </button>
+                <p class="content-card-kicker">Artwork trade</p>
+                <h2 id="trade-modal-title">Offer a trade</h2>
+                <p class="purchase-summary" data-trade-summary></p>
+                <form id="trade-form" class="purchase-form">
+                    <input type="hidden" name="requestedItemType">
+                    <input type="hidden" name="requestedItemId">
+                    <label class="commission-form-field purchase-form-span">
+                        <span>Your artwork to offer</span>
+                        <select class="auth-input" name="offeredArtwork" required></select>
+                    </label>
+                    <label class="commission-form-field purchase-form-span">
+                        <span>Message</span>
+                        <textarea class="auth-input profile-content-textarea" name="message" maxlength="1200" required>Would you be interested in trading?</textarea>
+                    </label>
+                    <p class="purchase-disclaimer">The artist who owns this artwork makes the final accept or decline decision. If accepted, both artworks are marked traded.</p>
+                    <div class="commission-form-actions">
+                        <button class="btn btn-primary" type="submit">Send Trade Offer</button>
+                        <button class="btn btn-secondary" type="button" data-trade-close>Cancel</button>
+                    </div>
+                    <p class="purchase-status" data-trade-status aria-live="polite"></p>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        modal.querySelectorAll('[data-trade-close]').forEach((button) => {
+            button.addEventListener('click', () => modal.classList.add('hidden'));
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+
+        modal.querySelector('#trade-form')?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const form = event.currentTarget;
+            const status = modal.querySelector('[data-trade-status]');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const formData = new FormData(form);
+            const [offeredItemType, offeredItemId] = String(formData.get('offeredArtwork') || '').split(':');
+
+            status.textContent = 'Sending trade offer...';
+            submitButton.disabled = true;
+
+            try {
+                const data = await apiFetchJSON('/api/trades', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        requestedItemType: formData.get('requestedItemType'),
+                        requestedItemId: formData.get('requestedItemId'),
+                        offeredItemType,
+                        offeredItemId,
+                        message: formData.get('message')
+                    })
+                });
+
+                status.textContent = 'Trade offer sent. Opening Messages...';
+                window.setTimeout(() => {
+                    window.location.href = `messages.html?conversationId=${encodeURIComponent(data.conversation.id)}`;
+                }, 700);
+            } catch (error) {
+                status.textContent = error.message;
+                submitButton.disabled = false;
+            }
+        });
+
+        return modal;
+    };
+
     const ensureContactModal = () => {
         let modal = document.getElementById('contact-modal');
         if (modal) {
@@ -312,14 +402,67 @@ document.addEventListener('DOMContentLoaded', () => {
         form.elements.buyerName.focus();
     };
 
-    document.addEventListener('click', (event) => {
-        const purchaseButton = event.target.closest('.purchase-art-btn');
-        if (!purchaseButton) {
+    const openTradeModal = async (button) => {
+        if (!currentUser?.id) {
+            window.location.href = 'auth.html';
             return;
         }
 
-        event.preventDefault();
-        openPurchaseModal(purchaseButton);
+        const modal = ensureTradeModal();
+        const form = modal.querySelector('#trade-form');
+        const summary = modal.querySelector('[data-trade-summary]');
+        const status = modal.querySelector('[data-trade-status]');
+        const artworkSelect = form.elements.offeredArtwork;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const title = decodeDataValue(button.dataset.tradeTitle) || 'Artwork';
+        const artist = decodeDataValue(button.dataset.tradeArtist) || 'Artist';
+
+        form.reset();
+        form.elements.requestedItemType.value = button.dataset.tradeItemType || '';
+        form.elements.requestedItemId.value = decodeDataValue(button.dataset.tradeItemId);
+        summary.textContent = `You are offering one of your artworks for ${title} by ${artist}.`;
+        status.textContent = 'Loading your available artworks...';
+        artworkSelect.innerHTML = '<option value="">Loading...</option>';
+        submitButton.disabled = true;
+        modal.classList.remove('hidden');
+
+        try {
+            const data = await apiFetchJSON('/api/my-artworks');
+            const artworks = data.artworks || [];
+
+            if (!artworks.length) {
+                artworkSelect.innerHTML = '<option value="">No available artwork yet</option>';
+                status.textContent = 'Add an artwork to your profile before offering a trade.';
+                return;
+            }
+
+            artworkSelect.innerHTML = artworks.map((artwork) => `
+                <option value="${artwork.itemType}:${artwork.id}">
+                    ${escapeHtml(artwork.title)} (${escapeHtml(artwork.itemType)})
+                </option>
+            `).join('');
+            form.elements.message.value = 'Would you be interested in trading?';
+            status.textContent = '';
+            submitButton.disabled = false;
+        } catch (error) {
+            status.textContent = error.message;
+        }
+    };
+
+    document.addEventListener('click', (event) => {
+        const purchaseButton = event.target.closest('.purchase-art-btn');
+
+        if (purchaseButton) {
+            event.preventDefault();
+            openPurchaseModal(purchaseButton);
+            return;
+        }
+
+        const tradeButton = event.target.closest('.trade-art-btn');
+        if (tradeButton) {
+            event.preventDefault();
+            openTradeModal(tradeButton);
+        }
     });
 
     document.getElementById('contact-us-btn')?.addEventListener('click', openContactModal);
@@ -363,13 +506,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            list.innerHTML = notifications.map((notification) => `
-                <article class="notification-item${notification.readAt ? '' : ' unread'}">
+            list.innerHTML = notifications.map((notification) => {
+                const tagName = notification.linkUrl ? 'a' : 'article';
+                const href = notification.linkUrl ? ` href="${escapeHtml(notification.linkUrl)}"` : '';
+
+                return `
+                <${tagName} class="notification-item${notification.readAt ? '' : ' unread'}"${href}>
                     <strong>${escapeHtml(notification.title)}</strong>
                     <p>${escapeHtml(notification.body)}</p>
                     <span>${formatNotificationTime(notification.createdAt)}</span>
-                </article>
-            `).join('');
+                </${tagName}>
+            `;
+            }).join('');
         };
 
         const loadNotifications = async () => {
@@ -445,8 +593,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Interactive Top Navigation highlights
+    const navLinks = document.querySelector('.top-nav .nav-links');
+    if (navLinks && !navLinks.querySelector('a[href="messages.html"]')) {
+        const messagesLink = document.createElement('a');
+        messagesLink.href = 'messages.html';
+        messagesLink.className = 'nav-item';
+        messagesLink.innerHTML = '<i class="ph ph-chat-circle-text"></i> Messages';
+
+        const authLink = navLinks.querySelector('a[href="auth.html"]');
+        navLinks.insertBefore(messagesLink, authLink || null);
+    }
+
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const navItems = document.querySelectorAll('.top-nav .nav-item');
+    navItems.forEach((item) => {
+        const href = item.getAttribute('href');
+        if (href && href !== '#' && href === currentPage) {
+            item.classList.add('active');
+        }
+    });
+
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             const href = item.getAttribute('href');

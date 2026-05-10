@@ -71,6 +71,7 @@ function mapCommission(row) {
         category: row.category,
         price: Number(row.price),
         image: row.image,
+        availabilityStatus: row.availability_status || "available",
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -87,6 +88,7 @@ function mapPost(row) {
         caption: row.caption,
         mediaUrl: row.media_url,
         artistName: row.artist_name,
+        availabilityStatus: row.availability_status || "available",
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -103,6 +105,7 @@ function mapPortfolioItem(row) {
         summary: row.summary,
         imageUrl: row.image_url,
         artistName: row.artist_name,
+        availabilityStatus: row.availability_status || "available",
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -120,6 +123,7 @@ function mapTutorial(row) {
         imageUrl: row.image_url,
         mediaType: row.media_type,
         artistName: row.artist_name,
+        availabilityStatus: row.availability_status || "available",
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -187,6 +191,22 @@ function mapFollowUser(row) {
     };
 }
 
+async function ensureColumn(tableName, columnName, definition) {
+    const [columns] = await pool.query(`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ?
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+    `, [databaseName, tableName, columnName]);
+
+    if (columns.length) {
+        return;
+    }
+
+    await pool.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+}
+
 function mapContactMessage(row) {
     if (!row) {
         return null;
@@ -198,6 +218,48 @@ function mapContactMessage(row) {
         email: row.email,
         message: row.message,
         delivered: Boolean(row.delivered),
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
+function mapConversation(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        userAId: row.user_a_id,
+        userBId: row.user_b_id,
+        kind: row.kind,
+        tradeStatus: row.trade_status,
+        requestedItemType: row.requested_item_type,
+        requestedItemId: row.requested_item_id,
+        requestedItemTitle: row.requested_item_title,
+        requestedOwnerUserId: row.requested_owner_user_id,
+        offeredItemType: row.offered_item_type,
+        offeredItemId: row.offered_item_id,
+        offeredItemTitle: row.offered_item_title,
+        offeredOwnerUserId: row.offered_owner_user_id,
+        otherUserId: row.other_user_id,
+        otherUserName: row.other_user_name,
+        lastMessage: row.last_message || "",
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at
+    };
+}
+
+function mapDirectMessage(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        conversationId: row.conversation_id,
+        userId: row.user_id,
+        authorName: row.author_name,
+        body: row.body,
         createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
     };
 }
@@ -310,6 +372,7 @@ async function initializeDatabase() {
             category VARCHAR(80) NOT NULL DEFAULT 'digital',
             price DECIMAL(10, 2) NOT NULL,
             image LONGTEXT NOT NULL,
+            availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY commissions_user_id_index (user_id),
@@ -326,6 +389,7 @@ async function initializeDatabase() {
             title VARCHAR(160) NOT NULL,
             caption TEXT NOT NULL,
             media_url LONGTEXT NOT NULL,
+            availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY posts_user_id_index (user_id),
@@ -342,6 +406,7 @@ async function initializeDatabase() {
             title VARCHAR(160) NOT NULL,
             summary TEXT NOT NULL,
             image_url LONGTEXT NOT NULL,
+            availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY portfolio_items_user_id_index (user_id),
@@ -359,6 +424,7 @@ async function initializeDatabase() {
             description TEXT NOT NULL,
             image_url LONGTEXT NOT NULL,
             media_type VARCHAR(16) NOT NULL DEFAULT 'image',
+            availability_status VARCHAR(24) NOT NULL DEFAULT 'available',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY tutorials_user_id_index (user_id),
@@ -531,6 +597,59 @@ async function initializeDatabase() {
         `);
     }
 
+    await ensureColumn("commissions", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
+    await ensureColumn("posts", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
+    await ensureColumn("portfolio_items", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
+    await ensureColumn("tutorials", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS conversations (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_a_id BIGINT UNSIGNED NOT NULL,
+            user_b_id BIGINT UNSIGNED NOT NULL,
+            kind VARCHAR(24) NOT NULL DEFAULT 'direct',
+            trade_status VARCHAR(24) NULL,
+            requested_item_type VARCHAR(40) NULL,
+            requested_item_id BIGINT UNSIGNED NULL,
+            requested_item_title VARCHAR(160) NULL,
+            requested_owner_user_id BIGINT UNSIGNED NULL,
+            offered_item_type VARCHAR(40) NULL,
+            offered_item_id BIGINT UNSIGNED NULL,
+            offered_item_title VARCHAR(160) NULL,
+            offered_owner_user_id BIGINT UNSIGNED NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY conversations_user_a_index (user_a_id),
+            KEY conversations_user_b_index (user_b_id),
+            CONSTRAINT conversations_user_a_fk
+                FOREIGN KEY (user_a_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            CONSTRAINT conversations_user_b_fk
+                FOREIGN KEY (user_b_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS conversation_messages (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            conversation_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            body TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY conversation_messages_conversation_id_index (conversation_id, id),
+            KEY conversation_messages_user_id_index (user_id),
+            CONSTRAINT conversation_messages_conversation_id_fk
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+                ON DELETE CASCADE,
+            CONSTRAINT conversation_messages_user_id_fk
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     await pool.query("ALTER TABLE commissions MODIFY image LONGTEXT NOT NULL");
     await pool.query("ALTER TABLE posts MODIFY media_url LONGTEXT NOT NULL");
     await pool.query("ALTER TABLE portfolio_items MODIFY image_url LONGTEXT NOT NULL");
@@ -635,7 +754,7 @@ async function deleteUserById(id) {
 
 async function listCommissionsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, created_at
+        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
          FROM commissions
          WHERE user_id = ?
          ORDER BY id DESC`,
@@ -647,8 +766,9 @@ async function listCommissionsByUserId(userId) {
 
 async function listAllCommissions() {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, created_at
+        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
          FROM commissions
+         WHERE availability_status = 'available'
          ORDER BY id DESC`
     );
 
@@ -659,16 +779,16 @@ async function getPurchasableItem(itemType, itemId) {
     const normalizedType = String(itemType || "").trim().toLowerCase();
     const tableConfig = {
         commission: {
-            sql: `SELECT id, user_id, title, price, 'commission' AS item_type FROM commissions WHERE id = ? LIMIT 1`
+            sql: `SELECT id, user_id, title, price, 'commission' AS item_type, availability_status FROM commissions WHERE id = ? LIMIT 1`
         },
         post: {
-            sql: `SELECT id, user_id, title, NULL AS price, 'post' AS item_type FROM posts WHERE id = ? LIMIT 1`
+            sql: `SELECT id, user_id, title, NULL AS price, 'post' AS item_type, availability_status FROM posts WHERE id = ? LIMIT 1`
         },
         portfolio: {
-            sql: `SELECT id, user_id, title, NULL AS price, 'portfolio' AS item_type FROM portfolio_items WHERE id = ? LIMIT 1`
+            sql: `SELECT id, user_id, title, NULL AS price, 'portfolio' AS item_type, availability_status FROM portfolio_items WHERE id = ? LIMIT 1`
         },
         tutorial: {
-            sql: `SELECT id, user_id, title, NULL AS price, 'tutorial' AS item_type FROM tutorials WHERE id = ? LIMIT 1`
+            sql: `SELECT id, user_id, title, NULL AS price, 'tutorial' AS item_type, availability_status FROM tutorials WHERE id = ? LIMIT 1`
         }
     };
 
@@ -689,7 +809,8 @@ async function getPurchasableItem(itemType, itemId) {
         userId: row.user_id,
         title: row.title,
         price: row.price === null || row.price === undefined ? null : Number(row.price),
-        itemType: row.item_type
+        itemType: row.item_type,
+        availabilityStatus: row.availability_status || "available"
     };
 }
 
@@ -901,7 +1022,7 @@ async function listFollowing(userId) {
 
 async function listPostsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.created_at, users.name AS artist_name
+        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.availability_status, posts.created_at, users.name AS artist_name
          FROM posts
          INNER JOIN users ON users.id = posts.user_id
          WHERE posts.user_id = ?
@@ -920,7 +1041,7 @@ async function createPost({ userId, title, caption, mediaUrl }) {
     );
 
     const [rows] = await pool.query(
-        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.created_at, users.name AS artist_name
+        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.availability_status, posts.created_at, users.name AS artist_name
          FROM posts
          INNER JOIN users ON users.id = posts.user_id
          WHERE posts.id = ?
@@ -933,7 +1054,7 @@ async function createPost({ userId, title, caption, mediaUrl }) {
 
 async function listPortfolioItemsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.created_at, users.name AS artist_name
+        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.availability_status, portfolio_items.created_at, users.name AS artist_name
          FROM portfolio_items
          INNER JOIN users ON users.id = portfolio_items.user_id
          WHERE portfolio_items.user_id = ?
@@ -952,7 +1073,7 @@ async function createPortfolioItem({ userId, title, summary, imageUrl }) {
     );
 
     const [rows] = await pool.query(
-        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.created_at, users.name AS artist_name
+        `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.availability_status, portfolio_items.created_at, users.name AS artist_name
          FROM portfolio_items
          INNER JOIN users ON users.id = portfolio_items.user_id
          WHERE portfolio_items.id = ?
@@ -965,7 +1086,7 @@ async function createPortfolioItem({ userId, title, summary, imageUrl }) {
 
 async function listTutorialsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.availability_status, tutorials.created_at, users.name AS artist_name
          FROM tutorials
          INNER JOIN users ON users.id = tutorials.user_id
          WHERE tutorials.user_id = ?
@@ -978,9 +1099,10 @@ async function listTutorialsByUserId(userId) {
 
 async function listAllTutorials() {
     const [rows] = await pool.query(
-        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.availability_status, tutorials.created_at, users.name AS artist_name
          FROM tutorials
          INNER JOIN users ON users.id = tutorials.user_id
+         WHERE tutorials.availability_status = 'available'
          ORDER BY tutorials.id DESC`
     );
 
@@ -995,7 +1117,7 @@ async function createTutorial({ userId, title, description, imageUrl, mediaType 
     );
 
     const [rows] = await pool.query(
-        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.created_at, users.name AS artist_name
+        `SELECT tutorials.id, tutorials.user_id, tutorials.title, tutorials.description, tutorials.image_url, tutorials.media_type, tutorials.availability_status, tutorials.created_at, users.name AS artist_name
          FROM tutorials
          INNER JOIN users ON users.id = tutorials.user_id
          WHERE tutorials.id = ?
@@ -1014,7 +1136,7 @@ async function createCommission({ userId, title, artist, category, price, image 
     );
 
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, created_at
+        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
          FROM commissions
          WHERE id = ?
          LIMIT 1`,
@@ -1238,10 +1360,252 @@ async function createCommunityMessage({ userId, communityId, body }) {
     return mapCommunityMessage(rows[0]);
 }
 
+async function listUserArtworks(userId) {
+    const [rows] = await pool.query(`
+        SELECT 'post' AS item_type, id, user_id, title, NULL AS price, '' AS image_url, availability_status
+        FROM posts
+        WHERE user_id = ? AND availability_status = 'available'
+        UNION ALL
+        SELECT 'commission' AS item_type, id, user_id, title, price, '' AS image_url, availability_status
+        FROM commissions
+        WHERE user_id = ? AND availability_status = 'available'
+        UNION ALL
+        SELECT 'portfolio' AS item_type, id, user_id, title, NULL AS price, '' AS image_url, availability_status
+        FROM portfolio_items
+        WHERE user_id = ? AND availability_status = 'available'
+        UNION ALL
+        SELECT 'tutorial' AS item_type, id, user_id, title, NULL AS price, '' AS image_url, availability_status
+        FROM tutorials
+        WHERE user_id = ? AND availability_status = 'available'
+        ORDER BY title ASC
+    `, [userId, userId, userId, userId]);
+
+    return rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        itemType: row.item_type,
+        title: row.title,
+        price: row.price === null || row.price === undefined ? null : Number(row.price),
+        imageUrl: row.image_url,
+        availabilityStatus: row.availability_status
+    }));
+}
+
+async function createDirectConversation({ userAId, userBId }) {
+    const lowUserId = Number(userAId) < Number(userBId) ? userAId : userBId;
+    const highUserId = Number(userAId) < Number(userBId) ? userBId : userAId;
+
+    const [existingRows] = await pool.query(
+        `SELECT *
+         FROM conversations
+         WHERE kind = 'direct'
+           AND user_a_id = ?
+           AND user_b_id = ?
+         LIMIT 1`,
+        [lowUserId, highUserId]
+    );
+
+    if (existingRows[0]) {
+        return mapConversation(existingRows[0]);
+    }
+
+    const [result] = await pool.query(
+        `INSERT INTO conversations (user_a_id, user_b_id, kind)
+         VALUES (?, ?, 'direct')`,
+        [lowUserId, highUserId]
+    );
+
+    const [rows] = await pool.query("SELECT * FROM conversations WHERE id = ? LIMIT 1", [result.insertId]);
+    return mapConversation(rows[0]);
+}
+
+async function createTradeConversation({ requesterUserId, requestedItem, offeredItem, message }) {
+    const [result] = await pool.query(
+        `INSERT INTO conversations (
+            user_a_id,
+            user_b_id,
+            kind,
+            trade_status,
+            requested_item_type,
+            requested_item_id,
+            requested_item_title,
+            requested_owner_user_id,
+            offered_item_type,
+            offered_item_id,
+            offered_item_title,
+            offered_owner_user_id
+         )
+         VALUES (?, ?, 'trade', 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            requesterUserId,
+            requestedItem.userId,
+            requestedItem.itemType,
+            requestedItem.id,
+            requestedItem.title,
+            requestedItem.userId,
+            offeredItem.itemType,
+            offeredItem.id,
+            offeredItem.title,
+            offeredItem.userId
+        ]
+    );
+
+    await createConversationMessage({
+        conversationId: result.insertId,
+        userId: requesterUserId,
+        body: message
+    });
+
+    const [rows] = await pool.query("SELECT * FROM conversations WHERE id = ? LIMIT 1", [result.insertId]);
+    return mapConversation(rows[0]);
+}
+
+async function listConversationsForUser(userId) {
+    const [rows] = await pool.query(
+        `SELECT conversations.*,
+                CASE
+                    WHEN conversations.user_a_id = ? THEN conversations.user_b_id
+                    ELSE conversations.user_a_id
+                END AS other_user_id,
+                other_user.name AS other_user_name,
+                (
+                    SELECT body
+                    FROM conversation_messages
+                    WHERE conversation_messages.conversation_id = conversations.id
+                    ORDER BY conversation_messages.id DESC
+                    LIMIT 1
+                ) AS last_message
+         FROM conversations
+         INNER JOIN users AS other_user
+            ON other_user.id = CASE
+                WHEN conversations.user_a_id = ? THEN conversations.user_b_id
+                ELSE conversations.user_a_id
+            END
+         WHERE conversations.user_a_id = ?
+            OR conversations.user_b_id = ?
+         ORDER BY conversations.updated_at DESC, conversations.id DESC`,
+        [userId, userId, userId, userId]
+    );
+
+    return rows.map(mapConversation);
+}
+
+async function getConversationForUser({ conversationId, userId }) {
+    const [rows] = await pool.query(
+        `SELECT conversations.*,
+                CASE
+                    WHEN conversations.user_a_id = ? THEN conversations.user_b_id
+                    ELSE conversations.user_a_id
+                END AS other_user_id,
+                other_user.name AS other_user_name
+         FROM conversations
+         INNER JOIN users AS other_user
+            ON other_user.id = CASE
+                WHEN conversations.user_a_id = ? THEN conversations.user_b_id
+                ELSE conversations.user_a_id
+            END
+         WHERE conversations.id = ?
+           AND (conversations.user_a_id = ? OR conversations.user_b_id = ?)
+         LIMIT 1`,
+        [userId, userId, conversationId, userId, userId]
+    );
+
+    return mapConversation(rows[0]);
+}
+
+async function listConversationMessages({ conversationId, userId }) {
+    const conversation = await getConversationForUser({ conversationId, userId });
+    if (!conversation) {
+        return null;
+    }
+
+    const [rows] = await pool.query(
+        `SELECT conversation_messages.id,
+                conversation_messages.conversation_id,
+                conversation_messages.user_id,
+                conversation_messages.body,
+                conversation_messages.created_at,
+                users.name AS author_name
+         FROM conversation_messages
+         INNER JOIN users ON users.id = conversation_messages.user_id
+         WHERE conversation_messages.conversation_id = ?
+         ORDER BY conversation_messages.id ASC`,
+        [conversationId]
+    );
+
+    return {
+        conversation,
+        messages: rows.map(mapDirectMessage)
+    };
+}
+
+async function createConversationMessage({ conversationId, userId, body }) {
+    const [result] = await pool.query(
+        `INSERT INTO conversation_messages (conversation_id, user_id, body)
+         VALUES (?, ?, ?)`,
+        [conversationId, userId, body]
+    );
+
+    await pool.query("UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", [conversationId]);
+
+    const [rows] = await pool.query(
+        `SELECT conversation_messages.id,
+                conversation_messages.conversation_id,
+                conversation_messages.user_id,
+                conversation_messages.body,
+                conversation_messages.created_at,
+                users.name AS author_name
+         FROM conversation_messages
+         INNER JOIN users ON users.id = conversation_messages.user_id
+         WHERE conversation_messages.id = ?
+         LIMIT 1`,
+        [result.insertId]
+    );
+
+    return mapDirectMessage(rows[0]);
+}
+
+async function updateTradeStatus({ conversationId, status }) {
+    await pool.query(
+        `UPDATE conversations
+         SET trade_status = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND kind = 'trade'`,
+        [status, conversationId]
+    );
+
+    const [rows] = await pool.query("SELECT * FROM conversations WHERE id = ? LIMIT 1", [conversationId]);
+    return mapConversation(rows[0]);
+}
+
+async function markArtworkTraded({ itemType, itemId }) {
+    const tableMap = {
+        commission: "commissions",
+        post: "posts",
+        portfolio: "portfolio_items",
+        tutorial: "tutorials"
+    };
+    const tableName = tableMap[String(itemType || "").toLowerCase()];
+
+    if (!tableName) {
+        return false;
+    }
+
+    const [result] = await pool.query(
+        `UPDATE ${tableName}
+         SET availability_status = 'traded'
+         WHERE id = ? AND availability_status = 'available'`,
+        [itemId]
+    );
+
+    return result.affectedRows > 0;
+}
+
 module.exports = {
     createCommunity,
     createCommunityMessage,
     createContactMessage,
+    createConversationMessage,
+    createDirectConversation,
     createNotification,
     createPasswordResetToken,
     createPortfolioItem,
@@ -1249,6 +1613,7 @@ module.exports = {
     createPost,
     createPurchase,
     createTutorial,
+    createTradeConversation,
     createUser,
     deleteCommissionById,
     deletePortfolioItemById,
@@ -1260,6 +1625,7 @@ module.exports = {
     getFollowSummary,
     getValidPasswordResetToken,
     getUserById,
+    getConversationForUser,
     getPurchasableItem,
     getCommunityById,
     healthCheck,
@@ -1269,18 +1635,23 @@ module.exports = {
     listCommunitiesForUser,
     listCommunityMessages,
     listNotificationsForUser,
+    listConversationMessages,
+    listConversationsForUser,
     listCommissionsByUserId,
     listFollowers,
     listFollowing,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
+    listUserArtworks,
     joinCommunity,
     markAllNotificationsRead,
+    markArtworkTraded,
     markNotificationRead,
     markPasswordResetTokenUsed,
     pool,
     unfollowUser,
     updateUserPasswordHash,
+    updateTradeStatus,
     updateUserProfile
 };

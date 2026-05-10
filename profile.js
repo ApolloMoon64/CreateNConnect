@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const followList = document.getElementById("follow-list");
     const followListClose = document.getElementById("follow-list-close");
     const followListButtons = document.querySelectorAll("[data-follow-list]");
+    const profileHeadlineActions = document.querySelector(".profile-headline-actions");
     const profileInlineEditForm = document.getElementById("profile-inline-edit-form");
     const profileInlineEditCancel = document.getElementById("profile-inline-edit-cancel");
     const profileBioInput = document.getElementById("profile-edit-bio-input");
@@ -324,8 +325,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     };
 
-    const createPurchaseButtonMarkup = ({ itemType, id, title, artistName, price }) => {
-        if (isOwnProfile || !signedInUser) {
+    const createAvailabilityMarkup = (status) => {
+        if (!status || status === "available") {
+            return "";
+        }
+
+        return `<span class="content-card-status">${status === "traded" ? "Traded" : "Unavailable"}</span>`;
+    };
+
+    const createPurchaseButtonMarkup = ({ itemType, id, title, artistName, price, availabilityStatus }) => {
+        if (isOwnProfile || !signedInUser || availabilityStatus !== "available") {
             return "";
         }
 
@@ -348,6 +357,37 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     };
 
+    const createTradeButtonMarkup = ({ itemType, id, title, artistName, availabilityStatus }) => {
+        if (isOwnProfile || !signedInUser || availabilityStatus !== "available") {
+            return "";
+        }
+
+        return `
+            <button
+                class="btn btn-secondary content-card-trade trade-art-btn"
+                type="button"
+                data-trade-item-type="${itemType}"
+                data-trade-item-id="${encodeURIComponent(id)}"
+                data-trade-title="${encodeURIComponent(title || "Artwork")}"
+                data-trade-artist="${encodeURIComponent(artistName || "Artist")}"
+            >
+                Trade
+            </button>
+        `;
+    };
+
+    const createCardActionsMarkup = (options) => {
+        const purchaseButton = createPurchaseButtonMarkup(options);
+        const tradeButton = createTradeButtonMarkup(options);
+        const status = createAvailabilityMarkup(options.availabilityStatus);
+
+        if (!purchaseButton && !tradeButton && !status) {
+            return "";
+        }
+
+        return `<div class="content-card-actions">${status}${purchaseButton}${tradeButton}</div>`;
+    };
+
     const renderPostCard = (post) => `
         <article class="post-card post-content-card glass-panel-lite">
             ${createDeleteButtonMarkup("posts", post.id, "post")}
@@ -359,12 +399,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${post.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${post.caption}</p>
-                ${createPurchaseButtonMarkup({
+                ${createCardActionsMarkup({
                     itemType: "post",
                     id: post.id,
                     title: post.title,
                     artistName: post.artistName,
-                    price: null
+                    price: null,
+                    availabilityStatus: post.availabilityStatus
                 })}
             </div>
         </article>
@@ -381,12 +422,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${commission.artist || "View artist profile"}
                 </a>
                 <p class="content-card-copy">$${Number(commission.price).toFixed(2)} · ${commission.category}</p>
-                ${createPurchaseButtonMarkup({
+                ${createCardActionsMarkup({
                     itemType: "commission",
                     id: commission.id,
                     title: commission.title,
                     artistName: commission.artist,
-                    price: commission.price
+                    price: commission.price,
+                    availabilityStatus: commission.availabilityStatus
                 })}
             </div>
         </article>
@@ -404,12 +446,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${item.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${item.summary}</p>
-                ${createPurchaseButtonMarkup({
+                ${createCardActionsMarkup({
                     itemType: "portfolio",
                     id: item.id,
                     title: item.title,
                     artistName: item.artistName,
-                    price: null
+                    price: null,
+                    availabilityStatus: item.availabilityStatus
                 })}
             </div>
         </article>
@@ -428,12 +471,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${tutorial.artistName || "View artist profile"}
                 </a>
                 <p class="content-card-copy">${tutorial.description}</p>
-                ${createPurchaseButtonMarkup({
+                ${createCardActionsMarkup({
                     itemType: "tutorial",
                     id: tutorial.id,
                     title: tutorial.title,
                     artistName: tutorial.artistName,
-                    price: null
+                    price: null,
+                    availabilityStatus: tutorial.availabilityStatus
                 })}
             </div>
         </article>
@@ -1330,6 +1374,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             portfolio: user.portfolio || "",
             email: user.contactEmail ?? user.email ?? ""
         };
+
+        if (profileHeadlineActions && signedInUser && !isOwnProfile && !document.getElementById("profile-message-btn")) {
+            const messageButton = document.createElement("button");
+            messageButton.id = "profile-message-btn";
+            messageButton.className = "profile-edit-btn profile-message-btn";
+            messageButton.type = "button";
+            messageButton.textContent = "Message";
+            messageButton.addEventListener("click", () => {
+                window.location.href = `messages.html?userId=${encodeURIComponent(targetUserId)}`;
+            });
+            profileHeadlineActions.insertBefore(messageButton, followButton || editButton || null);
+        }
 
         const nameTargets = document.querySelectorAll("[data-profile-name]");
         const emailTargets = document.querySelectorAll("[data-profile-email]");
