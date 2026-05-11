@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html  lang="en">
 
-</script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist Homepage</title>
+    <title>CreateNConnect | Artist Community</title>
     <script>
         try {
             if (localStorage.getItem('sidebar-collapsed') === 'true') {
@@ -78,29 +77,67 @@
 
             <!-- Main Content Area -->
             <main class="main-content">
-                <div class="content-card glass-panel">
-                    <div class="about-section">
-                        <div class="about-text">
-                            <h1 class="page-title">About Us</h1>
-                            <p class="intro-text">Welcome to CreateNConnect! We're a digital hangout and marketplace for
-                                artist and art enthusist.
-                                You can find art of all sorts here and can connect with other artists and art lovers.
+                <div class="content-card landing-card glass-panel">
+                    <section class="landing-hero" aria-labelledby="landing-title">
+                        <div class="landing-copy">
+                            <p class="landing-kicker">CreateNConnect</p>
+                            <h1 id="landing-title" class="page-title">Post your art, find your people, and build your creative circle.</h1>
+                            <p class="intro-text">
+                                CreateNConnect is a digital hangout and marketplace where artists can share work,
+                                offer commissions, join groups, and meet other creators.
                             </p>
-                            <p></p>
 
                             <div class="action-buttons">
+                                <a class="btn btn-primary" href="auth.html">Create Account</a>
+                                <a class="btn btn-secondary" href="commissions.html">Explore Art</a>
                                 <button id="contact-us-btn" class="btn btn-secondary" type="button">Contact Us</button>
                             </div>
-                        </div>
-                        <div class="about-image-container">
-                            <!-- Placeholder image with a nice styling -->
-                            <div class="image-placeholder">
-                                <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=800&auto=format&fit=crop"
-                                    alt="Artist at work" class="about-image">
-                                <div class="image-overlay"></div>
+
+                            <div class="landing-stats" aria-label="Website highlights">
+                                <div>
+                                    <strong>Share</strong>
+                                    <span>art posts and portfolios</span>
+                                </div>
+                                <div>
+                                    <strong>Sell</strong>
+                                    <span>commissions and pieces</span>
+                                </div>
+                                <div>
+                                    <strong>Connect</strong>
+                                    <span>groups and meetings</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+
+                        <div class="about-image-container landing-visual">
+                            <div class="image-placeholder">
+                                <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=900&auto=format&fit=crop"
+                                    alt="Artist painting in a studio" class="about-image">
+                            </div>
+                            <div class="landing-note">
+                                <i class="ph ph-sparkle"></i>
+                                <span>Made for artists, collectors, and creative communities.</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="landing-features" aria-label="What you can do on CreateNConnect">
+                        <a class="feature-card" href="post.html">
+                            <i class="ph ph-image-square"></i>
+                            <h2>Post Artwork</h2>
+                            <p>Publish new pieces and keep your creative work visible.</p>
+                        </a>
+                        <a class="feature-card" href="commissions.html">
+                            <i class="ph ph-palette"></i>
+                            <h2>Offer Commissions</h2>
+                            <p>Show available work, prices, and purchase options.</p>
+                        </a>
+                        <a class="feature-card" href="connect.html">
+                            <i class="ph ph-users-three"></i>
+                            <h2>Join Communities</h2>
+                            <p>Create groups, join meetings, and talk with other artists.</p>
+                        </a>
+                    </section>
                 </div>
             </main>
         </div>
