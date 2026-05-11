@@ -588,6 +588,13 @@ a {
     max-width: 58ch;
 }
 
+.landing-login-note {
+    color: var(--text-secondary);
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
 .about-text p:not(.intro-text) {
     color: var(--text-secondary);
     line-height: 1.7;
@@ -1620,6 +1627,21 @@ a {
 
 .profile-content-form-span {
     grid-column: 1 / -1;
+}
+
+.profile-form-status {
+    min-height: 1.5rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.profile-form-status.success {
+    color: #15803d;
+}
+
+.profile-form-status.error {
+    color: #b91c1c;
 }
 
 .profile-content-textarea {

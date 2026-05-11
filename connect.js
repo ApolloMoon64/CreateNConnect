@@ -60,7 +60,7 @@ function requireSignedInForAction(actionLabel = 'use this feature') {
     return true;
   }
 
-  window.alert(`Please sign up or log in to ${actionLabel}.`);
+  sessionStorage.setItem('authNotice', `Please create an account or log in to ${actionLabel}.`);
   window.location.href = 'auth.html';
   return false;
 }
@@ -187,6 +187,10 @@ function bindEvents() {
       return;
     }
 
+    const submitButton = meetingForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    meetingFormStatus.textContent = 'Creating meeting...';
+
     const newMeeting = {
       id: crypto.randomUUID(),
       title: String(formData.get('title')).trim(),
@@ -207,6 +211,7 @@ function bindEvents() {
 
     meetingForm.reset();
     meetingFormStatus.textContent = `Created "${newMeeting.title}" and prepared the host Zoom details.`;
+    submitButton.disabled = false;
     renderMeetings();
   });
 
@@ -226,6 +231,10 @@ function bindEvents() {
     };
 
     try {
+      const submitButton = communityForm.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      communityFormStatus.textContent = 'Creating community...';
+
       const data = await apiFetchJSON('/api/communities', {
         method: 'POST',
         headers: {
@@ -245,6 +254,9 @@ function bindEvents() {
       renderChat();
     } catch (error) {
       communityFormStatus.textContent = error.message;
+    } finally {
+      const submitButton = communityForm.querySelector('button[type="submit"]');
+      submitButton.disabled = false;
     }
   });
 

@@ -81,7 +81,7 @@
                   <div class="profile-headline">
                     <div>
                       <p class="profile-handle-label">Creator Profile</p>
-                      <h1 class="profile-name-large" data-profile-name>Username</h1>
+                      <h1 class="profile-name-large" data-profile-name>Creator Name</h1>
                     </div>
                     <div class="profile-headline-actions">
                       <button id="profile-follow-btn" class="profile-edit-btn profile-follow-btn" type="button" hidden>Follow</button>
@@ -90,11 +90,11 @@
                   </div>
 
                   <div class="profile-bio-card glass-panel-lite">
-                    <p class="profile-bio-copy" data-profile-bio>Description about themselves here.</p>
+                    <p class="profile-bio-copy" data-profile-bio>Share your creative style, favorite mediums, and what you are making next.</p>
                     <div class="profile-links" data-profile-links-view>
                       <a href="#"><i class="ph ph-at"></i> <span data-profile-social>@artist_handle</span></a>
                       <a href="#" data-profile-portfolio-link><i class="ph ph-globe"></i> <span data-profile-portfolio>Portfolio link</span></a>
-                      <a href="#" data-profile-email-link><i class="ph ph-envelope-simple"></i> <span data-profile-email>artist@example.com</span></a>
+                      <a href="#" data-profile-email-link><i class="ph ph-envelope-simple"></i> <span data-profile-email>Contact email</span></a>
                     </div>
 
                     <form id="profile-inline-edit-form" class="profile-inline-edit-form is-hidden" aria-hidden="true">
@@ -128,7 +128,7 @@
                         <span class="stat-label">Display Name</span>
                       </div>
                       <div class="stat-row">
-                        <span class="stat-value" data-profile-email>artist@example.com</span>
+                        <span class="stat-value" data-profile-email>Contact email</span>
                         <span class="stat-label">Email</span>
                       </div>
                       <div class="stat-row">
@@ -219,6 +219,7 @@
                         <button class="btn btn-primary" type="submit">Publish Post</button>
                         <button class="btn btn-secondary" type="button" id="post-form-reset">Clear</button>
                       </div>
+                      <p id="post-form-status" class="profile-form-status profile-content-form-span" aria-live="polite"></p>
                     </form>
                   </section>
 
@@ -280,6 +281,7 @@
                         <button class="btn btn-primary" type="submit">Save Commission</button>
                         <button class="btn btn-secondary" type="button" id="commission-profile-form-reset">Clear</button>
                       </div>
+                      <p id="commission-profile-form-status" class="profile-form-status profile-content-form-span" aria-live="polite"></p>
                     </form>
                   </section>
 
@@ -331,6 +333,7 @@
                         <button class="btn btn-primary" type="submit">Publish Tutorial</button>
                         <button class="btn btn-secondary" type="button" id="tutorial-form-reset">Clear</button>
                       </div>
+                      <p id="tutorial-form-status" class="profile-form-status profile-content-form-span" aria-live="polite"></p>
                     </form>
                   </section>
 
@@ -381,6 +384,7 @@
                         <button class="btn btn-primary" type="submit">Save Portfolio Piece</button>
                         <button class="btn btn-secondary" type="button" id="portfolio-form-reset">Clear</button>
                       </div>
+                      <p id="portfolio-form-status" class="profile-form-status profile-content-form-span" aria-live="polite"></p>
                     </form>
                   </section>
 

@@ -23,6 +23,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const commissionForm = document.getElementById("commission-profile-form");
     const tutorialForm = document.getElementById("tutorial-form");
     const portfolioForm = document.getElementById("portfolio-form");
+    const postFormStatus = document.getElementById("post-form-status");
+    const commissionFormStatus = document.getElementById("commission-profile-form-status");
+    const tutorialFormStatus = document.getElementById("tutorial-form-status");
+    const portfolioFormStatus = document.getElementById("portfolio-form-status");
     const postTitleInput = document.getElementById("post-title");
     const postCaptionInput = document.getElementById("post-caption");
     const commissionTitleInput = document.getElementById("commission-profile-title");
@@ -95,6 +99,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabPanels.forEach((panel) => {
             panel.classList.toggle("active", panel.dataset.profilePanel === tabName);
         });
+    };
+
+    const setFormStatus = (statusElement, message, type = "") => {
+        if (!statusElement) {
+            return;
+        }
+
+        statusElement.textContent = message;
+        statusElement.className = `profile-form-status profile-content-form-span ${type}`.trim();
+    };
+
+    const setFormBusy = (form, isBusy, busyText = "Saving...") => {
+        const submitButton = form?.querySelector('button[type="submit"]');
+
+        if (!submitButton) {
+            return;
+        }
+
+        if (isBusy) {
+            submitButton.dataset.originalText = submitButton.textContent;
+            submitButton.textContent = busyText;
+            submitButton.disabled = true;
+            return;
+        }
+
+        submitButton.disabled = false;
+        submitButton.textContent = submitButton.dataset.originalText || submitButton.textContent;
+        delete submitButton.dataset.originalText;
     };
 
     const readResponsePayload = async (response) => {
@@ -566,7 +598,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
-                window.alert(`This is where the ${section || "content"} upload flow can go next.`);
+                window.alert("That creator tool is not available yet.");
             });
         });
     };
@@ -1102,11 +1134,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
 
         if (!selectedPostImageData) {
-            window.alert("Please choose an image for your post.");
+            setFormStatus(postFormStatus, "Please choose an image for your post.", "error");
             return;
         }
 
         try {
+            setFormStatus(postFormStatus, "Publishing your post...", "");
+            setFormBusy(postForm, true, "Publishing...");
             await apiFetchJSON(`/api/users/${currentUser.id}/posts`, {
                 method: "POST",
                 headers: {
@@ -1128,10 +1162,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                     selectedPostImageData = "";
                 }
             });
-            hidePanel(postFormPanel);
             await loadPosts();
+            setFormStatus(postFormStatus, "Post published successfully.", "success");
+            setTimeout(() => {
+                hidePanel(postFormPanel);
+                setFormStatus(postFormStatus, "");
+            }, 700);
         } catch (error) {
-            window.alert(error.message);
+            setFormStatus(postFormStatus, error.message, "error");
+        } finally {
+            setFormBusy(postForm, false);
         }
     });
 
@@ -1139,11 +1179,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
 
         if (!selectedCommissionImageData) {
-            window.alert("Please choose an image for your commission.");
+            setFormStatus(commissionFormStatus, "Please choose an image for your commission.", "error");
             return;
         }
 
         try {
+            setFormStatus(commissionFormStatus, "Saving your commission...", "");
+            setFormBusy(commissionForm, true, "Saving...");
             await apiFetchJSON("/api/commissions", {
                 method: "POST",
                 headers: {
@@ -1168,10 +1210,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                     selectedCommissionImageData = "";
                 }
             });
-            hidePanel(commissionFormPanel);
             await loadCommissions();
+            setFormStatus(commissionFormStatus, "Commission saved successfully.", "success");
+            setTimeout(() => {
+                hidePanel(commissionFormPanel);
+                setFormStatus(commissionFormStatus, "");
+            }, 700);
         } catch (error) {
-            window.alert(error.message);
+            setFormStatus(commissionFormStatus, error.message, "error");
+        } finally {
+            setFormBusy(commissionForm, false);
         }
     });
 
@@ -1179,11 +1227,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
 
         if (!selectedPortfolioImageData) {
-            window.alert("Please choose an image for your portfolio piece.");
+            setFormStatus(portfolioFormStatus, "Please choose an image for your portfolio piece.", "error");
             return;
         }
 
         try {
+            setFormStatus(portfolioFormStatus, "Saving your portfolio piece...", "");
+            setFormBusy(portfolioForm, true, "Saving...");
             await apiFetchJSON(`/api/users/${currentUser.id}/portfolio`, {
                 method: "POST",
                 headers: {
@@ -1205,10 +1255,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                     selectedPortfolioImageData = "";
                 }
             });
-            hidePanel(portfolioFormPanel);
             await loadPortfolio();
+            setFormStatus(portfolioFormStatus, "Portfolio piece saved successfully.", "success");
+            setTimeout(() => {
+                hidePanel(portfolioFormPanel);
+                setFormStatus(portfolioFormStatus, "");
+            }, 700);
         } catch (error) {
-            window.alert(error.message);
+            setFormStatus(portfolioFormStatus, error.message, "error");
+        } finally {
+            setFormBusy(portfolioForm, false);
         }
     });
 
@@ -1216,11 +1272,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
 
         if (!selectedTutorialImageData) {
-            window.alert("Please choose a cover image for your tutorial.");
+            setFormStatus(tutorialFormStatus, "Please choose a cover image for your tutorial.", "error");
             return;
         }
 
         try {
+            setFormStatus(tutorialFormStatus, "Publishing your tutorial...", "");
+            setFormBusy(tutorialForm, true, "Publishing...");
             await apiFetchJSON(`/api/users/${currentUser.id}/tutorials`, {
                 method: "POST",
                 headers: {
@@ -1249,15 +1307,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                 tutorialVideoPreview.removeAttribute("src");
                 tutorialVideoPreview.load();
             }
-            hidePanel(tutorialFormPanel);
             await loadTutorials();
+            setFormStatus(tutorialFormStatus, "Tutorial published successfully.", "success");
+            setTimeout(() => {
+                hidePanel(tutorialFormPanel);
+                setFormStatus(tutorialFormStatus, "");
+            }, 700);
         } catch (error) {
-            window.alert(error.message);
+            setFormStatus(tutorialFormStatus, error.message, "error");
+        } finally {
+            setFormBusy(tutorialForm, false);
         }
     });
 
     postResetButton?.addEventListener("click", () => {
         postForm?.reset();
+        setFormStatus(postFormStatus, "");
         resetUploadPreview({
             input: postImageInput,
             preview: postImagePreview,
@@ -1270,6 +1335,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     commissionResetButton?.addEventListener("click", () => {
         commissionForm?.reset();
+        setFormStatus(commissionFormStatus, "");
         resetUploadPreview({
             input: commissionImageInput,
             preview: commissionImagePreview,
@@ -1282,6 +1348,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     portfolioResetButton?.addEventListener("click", () => {
         portfolioForm?.reset();
+        setFormStatus(portfolioFormStatus, "");
         resetUploadPreview({
             input: portfolioImageInput,
             preview: portfolioImagePreview,
@@ -1294,6 +1361,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     tutorialResetButton?.addEventListener("click", () => {
         tutorialForm?.reset();
+        setFormStatus(tutorialFormStatus, "");
         resetUploadPreview({
             input: tutorialImageInput,
             preview: tutorialImagePreview,
@@ -1312,6 +1380,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     postCloseButton?.addEventListener("click", () => {
         postForm?.reset();
+        setFormStatus(postFormStatus, "");
         resetUploadPreview({
             input: postImageInput,
             preview: postImagePreview,
@@ -1325,6 +1394,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     commissionCloseButton?.addEventListener("click", () => {
         commissionForm?.reset();
+        setFormStatus(commissionFormStatus, "");
         resetUploadPreview({
             input: commissionImageInput,
             preview: commissionImagePreview,
@@ -1338,6 +1408,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     portfolioCloseButton?.addEventListener("click", () => {
         portfolioForm?.reset();
+        setFormStatus(portfolioFormStatus, "");
         resetUploadPreview({
             input: portfolioImageInput,
             preview: portfolioImagePreview,
@@ -1351,6 +1422,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     tutorialCloseButton?.addEventListener("click", () => {
         tutorialForm?.reset();
+        setFormStatus(tutorialFormStatus, "");
         resetUploadPreview({
             input: tutorialImageInput,
             preview: tutorialImagePreview,

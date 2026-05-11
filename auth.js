@@ -67,6 +67,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         setMessage("Password updated. Log in with your registered account email and new password.", "success");
     };
 
+    const showAuthNotice = () => {
+        const notice = sessionStorage.getItem("authNotice");
+
+        if (!notice) {
+            return false;
+        }
+
+        sessionStorage.removeItem("authNotice");
+        setActiveTab("login");
+        setMessage(notice, "info");
+        return true;
+    };
+
     const saveUser = (user) => {
         const { profileImage, ...storageUser } = user || {};
         localStorage.setItem("currentUser", JSON.stringify(storageUser));
@@ -116,7 +129,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const submitAuth = async (event, endpoint, payload) => {
         event.preventDefault();
+        const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+        const previousSubmitText = submitButton?.textContent || "";
+
         setMessage("Working...", "info");
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = endpoint === "/api/auth/login" ? "Logging in..." : "Creating account...";
+        }
 
         try {
             const response = await fetch(endpoint, {
@@ -140,6 +160,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             window.location.href = "profile.html";
         } catch (error) {
             setMessage(error.message, "error");
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = previousSubmitText;
+            }
         }
     };
 
@@ -180,7 +204,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!currentUser) {
         clearUser();
-        showResetSuccessLogin();
+        if (!showAuthNotice()) {
+            showResetSuccessLogin();
+        }
         return;
     }
 
@@ -197,6 +223,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (error) {
         clearUser();
         setSignedInState(null);
-        showResetSuccessLogin();
+        if (!showAuthNotice()) {
+            showResetSuccessLogin();
+        }
     }
 });

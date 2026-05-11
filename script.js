@@ -454,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (authRequiredLink && !currentUser?.id) {
             event.preventDefault();
+            sessionStorage.setItem('authNotice', 'Please create an account or log in to use that feature.');
             window.location.href = 'auth.html';
             return;
         }
