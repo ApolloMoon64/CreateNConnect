@@ -450,6 +450,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener('click', (event) => {
+        const authRequiredLink = event.target.closest('[data-auth-required="true"]');
+
+        if (authRequiredLink && !currentUser?.id) {
+            event.preventDefault();
+            window.location.href = 'auth.html';
+            return;
+        }
+
         const purchaseButton = event.target.closest('.purchase-art-btn');
 
         if (purchaseButton) {

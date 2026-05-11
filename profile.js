@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const currentUserRaw = localStorage.getItem("currentUser");
-    const profileUserId = new URLSearchParams(window.location.search).get("userId");
+    const profileSearchParams = new URLSearchParams(window.location.search);
+    const profileUserId = profileSearchParams.get("userId");
+    const requestedOpenPanel = profileSearchParams.get("open");
     const logoutButton = document.getElementById("profile-logout-btn");
     const deleteButton = document.getElementById("profile-delete-btn");
     const editButton = document.getElementById("profile-edit-btn");
@@ -567,6 +569,41 @@ document.addEventListener("DOMContentLoaded", async () => {
                 window.alert(`This is where the ${section || "content"} upload flow can go next.`);
             });
         });
+    };
+
+    const openRequestedProfilePanel = () => {
+        const formMap = {
+            posts: {
+                panel: postFormPanel,
+                form: postForm,
+                focusTarget: postTitleInput
+            },
+            commissions: {
+                panel: commissionFormPanel,
+                form: commissionForm,
+                focusTarget: commissionTitleInput
+            },
+            tutorials: {
+                panel: tutorialFormPanel,
+                form: tutorialForm,
+                focusTarget: tutorialTitleInput
+            },
+            portfolio: {
+                panel: portfolioFormPanel,
+                form: portfolioForm,
+                focusTarget: portfolioTitleInput
+            }
+        };
+        const requestedPanel = formMap[requestedOpenPanel];
+
+        if (!requestedPanel || profileUserId || !isOwnProfile) {
+            return;
+        }
+
+        setActiveTab(requestedOpenPanel);
+        showPanel(requestedPanel.panel);
+        requestedPanel.form?.scrollIntoView({ behavior: "smooth", block: "start" });
+        requestedPanel.focusTarget?.focus();
     };
 
     const getDeleteEndpoint = (section, id) => {
@@ -1659,6 +1696,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         hidePanel(portfolioFormPanel);
         hideOwnerControls();
         await Promise.all([loadFollowSummary(), loadPosts(), loadCommissions(), loadTutorials(), loadPortfolio()]);
+        openRequestedProfilePanel();
     } catch (error) {
         if (!profileUserId) {
             localStorage.removeItem("currentUser");
