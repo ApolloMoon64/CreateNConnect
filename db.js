@@ -691,7 +691,7 @@ async function findUserByEmail(email) {
 }
 
 async function createUser({ name, email, passwordHash }) {
-    const specialties = JSON.stringify(["Digital Illustration", "Commissions"]);
+    const specialties = JSON.stringify(["Artwork", "Commissions"]);
     const bio = "New artist on CreateNConnect.";
     const social = "@artist_handle";
     const portfolio = "Portfolio link";
@@ -1082,6 +1082,26 @@ async function createPost({ userId, title, caption, mediaUrl }) {
     return mapPost(rows[0]);
 }
 
+async function updatePostById(id, userId, { title, caption, mediaUrl }) {
+    await pool.query(
+        `UPDATE posts
+         SET title = ?, caption = ?, media_url = ?
+         WHERE id = ? AND user_id = ?`,
+        [title, caption, mediaUrl, id, userId]
+    );
+
+    const [rows] = await pool.query(
+        `SELECT posts.id, posts.user_id, posts.title, posts.caption, posts.media_url, posts.availability_status, posts.created_at, users.name AS artist_name
+         FROM posts
+         INNER JOIN users ON users.id = posts.user_id
+         WHERE posts.id = ? AND posts.user_id = ?
+         LIMIT 1`,
+        [id, userId]
+    );
+
+    return mapPost(rows[0]);
+}
+
 async function listPortfolioItemsByUserId(userId) {
     const [rows] = await pool.query(
         `SELECT portfolio_items.id, portfolio_items.user_id, portfolio_items.title, portfolio_items.summary, portfolio_items.image_url, portfolio_items.availability_status, portfolio_items.created_at, users.name AS artist_name
@@ -1217,7 +1237,7 @@ async function seedDefaultCommunities() {
     const defaults = [
         {
             name: "Makers Lounge",
-            category: "Digital Art",
+            category: "Artwork",
             region: "North America",
             description: "A daily chat for digital creators sharing works in progress, critique requests, and resource drops."
         },
@@ -1683,6 +1703,7 @@ module.exports = {
     searchUsersByName,
     unfollowUser,
     updateUserPasswordHash,
+    updatePostById,
     updateTradeStatus,
     updateUserProfile
 };

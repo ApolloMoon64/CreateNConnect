@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const portfolioFormPanel = document.getElementById("portfolio-form-panel");
     const tutorialFormPanel = document.getElementById("tutorial-form-panel");
     const postForm = document.getElementById("post-form");
+    const postFormTitle = document.getElementById("post-form-title");
+    const postFormSubmit = document.getElementById("post-form-submit");
     const commissionForm = document.getElementById("commission-profile-form");
     const tutorialForm = document.getElementById("tutorial-form");
     const portfolioForm = document.getElementById("portfolio-form");
@@ -128,6 +130,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         submitButton.disabled = false;
         submitButton.textContent = submitButton.dataset.originalText || submitButton.textContent;
         delete submitButton.dataset.originalText;
+    };
+
+    const setPostFormMode = (mode) => {
+        const isEditing = mode === "edit";
+
+        if (postFormTitle) {
+            postFormTitle.textContent = isEditing ? "Edit Post" : "Share A Post";
+        }
+
+        if (postFormSubmit) {
+            postFormSubmit.textContent = isEditing ? "Save Changes" : "Publish Post";
+        }
+    };
+
+    const resetPostFormState = () => {
+        editingPostId = null;
+        setPostFormMode("create");
+        setFormStatus(postFormStatus, "");
+        postForm?.reset();
+        resetUploadPreview({
+            input: postImageInput,
+            preview: postImagePreview,
+            emptyState: postUploadEmpty,
+            onReset: () => {
+                selectedPostImageData = "";
+            }
+        });
     };
 
     const readResponsePayload = async (response) => {
@@ -244,10 +273,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     let selectedPostImageData = "";
+    let editingPostId = null;
     let selectedCommissionImageData = "";
     let selectedTutorialImageData = "";
     let selectedTutorialMediaType = "image";
     let selectedPortfolioImageData = "";
+    let cachedPosts = [];
 
     const hidePanel = (panel) => {
         if (!panel) {
@@ -360,6 +391,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     };
 
+    const createPostEditButtonMarkup = (post) => {
+        if (!isOwnProfile) {
+            return "";
+        }
+
+        return `
+            <button
+                class="content-card-edit"
+                type="button"
+                data-edit-post-id="${encodeURIComponent(post.id)}"
+                aria-label="Edit post"
+                title="Edit"
+            >
+                <i class="ph ph-pencil-simple"></i>
+            </button>
+        `;
+    };
+
     const createAvailabilityMarkup = (status) => {
         if (!status || status === "available") {
             return "";
@@ -426,6 +475,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const renderPostCard = (post) => `
         <article class="post-card post-content-card glass-panel-lite">
             ${createDeleteButtonMarkup("posts", post.id, "post")}
+            ${createPostEditButtonMarkup(post)}
             <img class="content-card-image" src="${post.mediaUrl}" alt="${post.title}">
             <div class="content-card-body">
                 <span class="content-card-kicker">Post</span>
@@ -569,6 +619,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const section = button.dataset.addContent;
 
                 if (section === "posts") {
+                    resetPostFormState();
                     setActiveTab("posts");
                     showPanel(postFormPanel);
                     postForm?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -727,17 +778,66 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     };
 
+    const bindDynamicEditButtons = () => {
+        if (!isOwnProfile) {
+            return;
+        }
+
+        document.querySelectorAll("[data-edit-post-id]").forEach((button) => {
+            if (button.dataset.bound === "true") {
+                return;
+            }
+
+            button.dataset.bound = "true";
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                editingPostId = decodeURIComponent(button.dataset.editPostId || "");
+                const post = cachedPosts.find((item) => String(item.id) === String(editingPostId));
+
+                if (!post) {
+                    window.alert("Could not find this post to edit. Please refresh and try again.");
+                    return;
+                }
+
+                setActiveTab("posts");
+                showPanel(postFormPanel);
+                setPostFormMode("edit");
+                setFormStatus(postFormStatus, "");
+
+                postTitleInput.value = post.title || "";
+                postCaptionInput.value = post.caption || "";
+                selectedPostImageData = post.mediaUrl || "";
+
+                if (postImagePreview && selectedPostImageData) {
+                    postImagePreview.src = selectedPostImageData;
+                    postImagePreview.hidden = false;
+                }
+
+                if (postUploadEmpty) {
+                    postUploadEmpty.hidden = Boolean(selectedPostImageData);
+                }
+
+                postForm?.scrollIntoView({ behavior: "smooth", block: "start" });
+                postTitleInput?.focus();
+            });
+        });
+    };
+
     const renderPosts = (posts) => {
         if (!postsGrid) {
             return;
         }
 
+        cachedPosts = posts;
         const content = posts.length
             ? posts.map(renderPostCard).join("")
             : renderEmptySection("No posts yet", "Your posts will show up here after you publish one.");
 
         postsGrid.innerHTML = `${createAddCardMarkup("posts")}${content}`;
         bindDynamicAddButtons();
+        bindDynamicEditButtons();
         bindDynamicDeleteButtons();
     };
 
@@ -1141,10 +1241,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         try {
-            setFormStatus(postFormStatus, "Publishing your post...", "");
-            setFormBusy(postForm, true, "Publishing...");
-            await apiFetchJSON(`/api/users/${currentUser.id}/posts`, {
-                method: "POST",
+            const isEditing = Boolean(editingPostId);
+            const endpoint = isEditing
+                ? `/api/users/${currentUser.id}/posts/${encodeURIComponent(editingPostId)}`
+                : `/api/users/${currentUser.id}/posts`;
+
+            setFormStatus(postFormStatus, isEditing ? "Saving your changes..." : "Publishing your post...", "");
+            setFormBusy(postForm, true, isEditing ? "Saving..." : "Publishing...");
+            await apiFetchJSON(endpoint, {
+                method: isEditing ? "PUT" : "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -1155,20 +1260,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 })
             });
 
-            postForm.reset();
-            resetUploadPreview({
-                input: postImageInput,
-                preview: postImagePreview,
-                emptyState: postUploadEmpty,
-                onReset: () => {
-                    selectedPostImageData = "";
-                }
-            });
             await loadPosts();
-            setFormStatus(postFormStatus, "Post published successfully.", "success");
+            setFormStatus(postFormStatus, isEditing ? "Post updated successfully." : "Post published successfully.", "success");
             setTimeout(() => {
                 hidePanel(postFormPanel);
-                setFormStatus(postFormStatus, "");
+                resetPostFormState();
             }, 700);
         } catch (error) {
             setFormStatus(postFormStatus, error.message, "error");
@@ -1324,16 +1420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     postResetButton?.addEventListener("click", () => {
-        postForm?.reset();
-        setFormStatus(postFormStatus, "");
-        resetUploadPreview({
-            input: postImageInput,
-            preview: postImagePreview,
-            emptyState: postUploadEmpty,
-            onReset: () => {
-                selectedPostImageData = "";
-            }
-        });
+        resetPostFormState();
     });
 
     commissionResetButton?.addEventListener("click", () => {
@@ -1382,16 +1469,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     postCloseButton?.addEventListener("click", () => {
-        postForm?.reset();
-        setFormStatus(postFormStatus, "");
-        resetUploadPreview({
-            input: postImageInput,
-            preview: postImagePreview,
-            emptyState: postUploadEmpty,
-            onReset: () => {
-                selectedPostImageData = "";
-            }
-        });
+        resetPostFormState();
         hidePanel(postFormPanel);
     });
 

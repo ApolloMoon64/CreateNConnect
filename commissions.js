@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const categoryLabels = {
-        digital: "Digital Art",
+        digital: "Artwork",
         pottery: "Pottery",
         jewelry: "Jewelry",
         music: "Music",

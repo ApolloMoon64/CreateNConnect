@@ -56,6 +56,7 @@ const {
     unfollowUser,
     searchUsersByName,
     updateUserPasswordHash,
+    updatePostById,
     updateTradeStatus,
     updateUserProfile
 } = require("./db");
@@ -1565,6 +1566,36 @@ async function handleRequest(req, res) {
             });
 
             sendJSON(res, 201, { post });
+            return;
+        }
+
+        if (req.method === "PUT" && pathname.match(/^\/api\/users\/[^/]+\/posts\/[^/]+$/)) {
+            const [, , , userId, , postId] = pathname.split("/");
+            const user = await requireResourceOwner(req, res, userId);
+
+            if (!user) {
+                return;
+            }
+
+            const { title, caption, mediaUrl } = await readBody(req);
+
+            if (!title || !caption || !mediaUrl) {
+                sendJSON(res, 400, { error: "Title, caption, and artwork image are required." });
+                return;
+            }
+
+            const post = await updatePostById(postId, userId, {
+                title: String(title).trim(),
+                caption: String(caption).trim(),
+                mediaUrl: String(mediaUrl).trim()
+            });
+
+            if (!post) {
+                sendJSON(res, 404, { error: "Post not found for this user." });
+                return;
+            }
+
+            sendJSON(res, 200, { post });
             return;
         }
 
