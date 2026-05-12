@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
             panel.innerHTML = `
                 <div class="notification-panel-header">
                     <h2>Notifications</h2>
-                    <button class="ghost-button" type="button" data-notifications-read>Mark read</button>
+                    <button class="notification-read-button" type="button" data-notifications-read>Mark read</button>
                 </div>
                 <div class="notification-list" data-notification-list>
                     <p class="muted-copy">No notifications yet.</p>
