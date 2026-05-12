@@ -95,6 +95,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         music: "Music",
         crochet: "Crochet"
     };
+    const loadedCategories = new Set();
 
     const renderCommission = (commission) => {
         const isOwner = String(commission.userId) === String(currentUser.id);
@@ -128,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         return `
             <article class="commission-card glass-panel" data-commission-id="${commission.id}">
-                <img src="${commission.image}" alt="${commission.title}">
+                <img src="${commission.image}" alt="${commission.title}" loading="lazy" decoding="async">
                 <h3>${commission.title}</h3>
                 <p>
                     Artist:
@@ -190,26 +191,35 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    const renderGroupedCommissions = (commissions) => {
-        Object.entries(categories).forEach(([category, grid]) => {
-            if (!grid) {
-                return;
-            }
+    const renderCategoryCommissions = (category, commissions) => {
+        const grid = categories[category];
 
-            const categoryCommissions = commissions.filter(
-                (commission) => (commission.category || "digital") === category
-            );
+        if (!grid) {
+            return;
+        }
 
-            grid.innerHTML = categoryCommissions.length
-                ? categoryCommissions.map(renderCommission).join("")
-                : renderEmptyState(category);
-        });
+        grid.innerHTML = commissions.length
+            ? commissions.map(renderCommission).join("")
+            : renderEmptyState(category);
     };
 
-    const loadCommissions = async () => {
+    const loadCommissions = async (category = categoryInput.value || "digital", { force = false } = {}) => {
+        const grid = categories[category];
+
+        if (!grid) {
+            return;
+        }
+
+        if (loadedCategories.has(category) && !force) {
+            return;
+        }
+
+        grid.innerHTML = '<div class="glass-panel commission-empty-state">Loading commissions...</div>';
+
         try {
-            const data = await apiFetchJSON("/api/commissions");
-            renderGroupedCommissions(data.commissions || []);
+            const data = await apiFetchJSON(`/api/commissions?category=${encodeURIComponent(category)}`);
+            loadedCategories.add(category);
+            renderCategoryCommissions(category, data.commissions || []);
         } catch (error) {
             setMessage(error.message, "error");
         }
@@ -222,7 +232,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
 
             setMessage("Commission removed.", "success");
-            await loadCommissions();
+            loadedCategories.delete(categoryInput.value || "digital");
+            await loadCommissions(categoryInput.value || "digital", { force: true });
         } catch (error) {
             setMessage(error.message, "error");
         }
@@ -232,6 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         button.addEventListener("click", () => {
             const category = button.dataset.addCommission;
             setActiveCategory(category);
+            loadCommissions(category);
             openFormPanel();
             form?.scrollIntoView({ behavior: "smooth", block: "start" });
             titleInput?.focus();
@@ -275,6 +287,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setMessage("Saving commission...", "info");
 
         try {
+            const submittedCategory = categoryInput.value || "digital";
             await apiFetchJSON("/api/commissions", {
                 method: "POST",
                 headers: {
@@ -285,18 +298,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                     title: titleInput.value.trim(),
                     artist: artistInput.value.trim() || currentUser.name || "",
                     description: descriptionInput.value.trim(),
-                    category: categoryInput.value,
+                    category: submittedCategory,
                     price: priceInput.value,
                     image: selectedImageData
                 })
             });
 
             setMessage("Commission added.", "success");
+            loadedCategories.delete(submittedCategory);
             form.reset();
             artistInput.value = currentUser.name || "";
+            setActiveCategory(submittedCategory);
             resetImageSelection();
             closeFormPanel();
-            await loadCommissions();
+            await loadCommissions(submittedCategory, { force: true });
         } catch (error) {
             setMessage(error.message, "error");
         }
@@ -330,7 +345,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     setActiveCategory("digital");
     resetImageSelection();
     closeFormPanel();
-    loadCommissions();
+    window.loadCommissionCategory = loadCommissions;
+    loadCommissions("digital");
 });
 
 function showCategory(categoryId, element) {
@@ -349,5 +365,9 @@ function showCategory(categoryId, element) {
 
     if (element) {
         element.classList.add("active");
+    }
+
+    if (window.loadCommissionCategory) {
+        window.loadCommissionCategory(categoryId);
     }
 }

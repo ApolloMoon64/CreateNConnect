@@ -900,12 +900,22 @@ async function listCommissionsByUserId(userId) {
     return rows.map(mapCommission);
 }
 
-async function listAllCommissions() {
+async function listAllCommissions({ category = "" } = {}) {
+    const cleanCategory = String(category || "").trim().toLowerCase();
+    const params = [];
+    let whereClause = "WHERE availability_status = 'available'";
+
+    if (cleanCategory) {
+        whereClause += " AND category = ?";
+        params.push(cleanCategory);
+    }
+
     const [rows] = await pool.query(
         `SELECT id, user_id, title, artist, description, category, price, image, availability_status, created_at
          FROM commissions
-         WHERE availability_status = 'available'
-         ORDER BY id DESC`
+         ${whereClause}
+         ORDER BY id DESC`,
+        params
     );
 
     return rows.map(mapCommission);

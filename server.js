@@ -2003,9 +2003,10 @@ async function handleRequest(req, res) {
 
         if (req.method === "GET" && pathname === "/api/commissions") {
             const userId = requestUrl.searchParams.get("userId");
+            const category = requestUrl.searchParams.get("category");
 
             if (!userId) {
-                const commissions = await listAllCommissions();
+                const commissions = await listAllCommissions({ category });
                 sendJSON(res, 200, { commissions });
                 return;
             }
