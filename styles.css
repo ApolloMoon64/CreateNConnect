@@ -144,6 +144,11 @@ a {
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
+.nav-item[hidden],
+.sidebar[hidden] {
+    display: none !important;
+}
+
 .profile-section {
     display: flex;
     align-items: center;

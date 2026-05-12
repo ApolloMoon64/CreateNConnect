@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         navLinks.querySelectorAll('.nav-item').forEach((item) => {
             const href = item.getAttribute('href');
-            const isPublicNavItem = href === 'index.html' || href === 'auth.html';
+            const isPublicNavItem = href === 'index.html';
             item.hidden = !isSignedIn && !isPublicNavItem;
         });
 
