@@ -68,6 +68,7 @@ function mapCommission(row) {
         userId: row.user_id,
         title: row.title,
         artist: row.artist,
+        description: row.description || "Commission details available on request.",
         category: row.category,
         price: Number(row.price),
         image: row.image,
@@ -369,6 +370,7 @@ async function initializeDatabase() {
             user_id BIGINT UNSIGNED NOT NULL,
             title VARCHAR(160) NOT NULL,
             artist VARCHAR(160) NOT NULL,
+            description TEXT NOT NULL,
             category VARCHAR(80) NOT NULL DEFAULT 'digital',
             price DECIMAL(10, 2) NOT NULL,
             image LONGTEXT NOT NULL,
@@ -597,6 +599,12 @@ async function initializeDatabase() {
         `);
     }
 
+    await ensureColumn("commissions", "description", "TEXT NULL");
+    await pool.query(`
+        UPDATE commissions
+        SET description = 'Commission details available on request.'
+        WHERE description IS NULL OR description = ''
+    `);
     await ensureColumn("commissions", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
     await ensureColumn("posts", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
     await ensureColumn("portfolio_items", "availability_status", "VARCHAR(24) NOT NULL DEFAULT 'available'");
@@ -776,7 +784,7 @@ async function deleteUserById(id) {
 
 async function listCommissionsByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
+        `SELECT id, user_id, title, artist, description, category, price, image, availability_status, created_at
          FROM commissions
          WHERE user_id = ?
          ORDER BY id DESC`,
@@ -788,7 +796,7 @@ async function listCommissionsByUserId(userId) {
 
 async function listAllCommissions() {
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
+        `SELECT id, user_id, title, artist, description, category, price, image, availability_status, created_at
          FROM commissions
          WHERE availability_status = 'available'
          ORDER BY id DESC`
@@ -1150,15 +1158,15 @@ async function createTutorial({ userId, title, description, imageUrl, mediaType 
     return mapTutorial(rows[0]);
 }
 
-async function createCommission({ userId, title, artist, category, price, image }) {
+async function createCommission({ userId, title, artist, description, category, price, image }) {
     const [result] = await pool.query(
-        `INSERT INTO commissions (user_id, title, artist, category, price, image)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [userId, title, artist, category, price, image]
+        `INSERT INTO commissions (user_id, title, artist, description, category, price, image)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [userId, title, artist, description, category, price, image]
     );
 
     const [rows] = await pool.query(
-        `SELECT id, user_id, title, artist, category, price, image, availability_status, created_at
+        `SELECT id, user_id, title, artist, description, category, price, image, availability_status, created_at
          FROM commissions
          WHERE id = ?
          LIMIT 1`,

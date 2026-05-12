@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const titleInput = document.getElementById("commission-title");
     const artistInput = document.getElementById("commission-artist");
     const priceInput = document.getElementById("commission-price");
+    const descriptionInput = document.getElementById("commission-description");
     const imageInput = document.getElementById("commission-image-input");
     const imagePreview = document.getElementById("commission-image-preview");
     const imageEmptyState = document.getElementById("commission-upload-empty");
@@ -133,6 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </a>
                 </p>
                 <p>$${Number(commission.price).toFixed(2)}</p>
+                <p class="content-card-copy">${commission.description || "Commission details available on request."}</p>
                 ${isOwner
                     ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`
                     : buyerActions}
@@ -287,6 +289,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     userId: currentUser.id,
                     title: titleInput.value.trim(),
                     artist: artistInput.value.trim() || currentUser.name || "",
+                    description: descriptionInput.value.trim(),
                     category: categoryInput.value,
                     price: priceInput.value,
                     image: selectedImageData

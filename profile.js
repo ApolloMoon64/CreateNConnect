@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const postCaptionInput = document.getElementById("post-caption");
     const commissionTitleInput = document.getElementById("commission-profile-title");
     const commissionPriceInput = document.getElementById("commission-profile-price");
+    const commissionDescriptionInput = document.getElementById("commission-profile-description");
     const commissionCategoryInput = document.getElementById("commission-profile-category");
     const commissionImageInput = document.getElementById("commission-profile-image-input");
     const commissionImagePreview = document.getElementById("commission-profile-image-preview");
@@ -456,6 +457,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ${commission.artist || "View artist profile"}
                 </a>
                 <p class="content-card-copy">$${Number(commission.price).toFixed(2)} · ${commission.category}</p>
+                <p class="content-card-copy">${commission.description || "Commission details available on request."}</p>
                 ${createCardActionsMarkup({
                     itemType: "commission",
                     id: commission.id,
@@ -1195,6 +1197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     userId: currentUser.id,
                     title: commissionTitleInput.value.trim(),
                     artist: currentUser.name || "",
+                    description: commissionDescriptionInput.value.trim(),
                     category: commissionCategoryInput.value,
                     price: commissionPriceInput.value,
                     image: selectedCommissionImageData

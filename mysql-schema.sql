@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS commissions (
   user_id BIGINT UNSIGNED NOT NULL,
   title VARCHAR(160) NOT NULL,
   artist VARCHAR(160) NOT NULL,
+  description TEXT NULL,
   category VARCHAR(80) NOT NULL DEFAULT 'digital',
   price DECIMAL(10,2) NOT NULL,
   image LONGTEXT NOT NULL,

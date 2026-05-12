@@ -982,6 +982,10 @@ a {
     font-size: 0.95rem;
 }
 
+.commission-form-span {
+    grid-column: 1 / -1;
+}
+
 .commission-form-field:last-of-type {
     grid-column: 1 / -1;
 }

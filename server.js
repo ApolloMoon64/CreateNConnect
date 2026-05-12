@@ -1801,7 +1801,7 @@ async function handleRequest(req, res) {
         }
 
         if (req.method === "POST" && pathname === "/api/commissions") {
-            const { userId, title, artist, category, price, image } = await readBody(req);
+            const { userId, title, artist, description, category, price, image } = await readBody(req);
 
             if (!userId || !title || !artist || !price || !image) {
                 sendJSON(res, 400, { error: "User, title, artist, price, and artwork image are required." });
@@ -1823,6 +1823,7 @@ async function handleRequest(req, res) {
                 userId,
                 title: String(title).trim(),
                 artist: String(artist).trim(),
+                description: String(description || "Commission details available on request.").trim(),
                 category: String(category || "digital").trim().toLowerCase(),
                 price: numericPrice,
                 image: String(image).trim()
