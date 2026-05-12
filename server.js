@@ -148,17 +148,30 @@ function sendText(res, statusCode, text) {
 function readBody(req) {
     return new Promise((resolve, reject) => {
         let body = "";
+        let didReject = false;
+        const maxBodyLength = 10_000_000;
 
         req.on("data", (chunk) => {
+            if (didReject) {
+                return;
+            }
+
             body += chunk;
 
-            if (body.length > 20_000_000) {
-                reject(new Error("Request body too large."));
+            if (body.length > maxBodyLength) {
+                const error = new Error("Request body too large. Please choose a smaller file.");
+                error.statusCode = 413;
+                didReject = true;
+                reject(error);
                 req.destroy();
             }
         });
 
         req.on("end", () => {
+            if (didReject) {
+                return;
+            }
+
             if (!body) {
                 resolve({});
                 return;

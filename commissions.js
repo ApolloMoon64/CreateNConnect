@@ -235,7 +235,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
-    imageInput?.addEventListener("change", () => {
+    imageInput?.addEventListener("change", async () => {
         const [file] = imageInput.files || [];
 
         if (!file) {
@@ -243,16 +243,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            selectedImageData = typeof reader.result === "string" ? reader.result : "";
-
-            if (!selectedImageData) {
-                setMessage("Could not read the selected image.", "error");
-                resetImageSelection();
-                return;
-            }
-
+        try {
+            selectedImageData = window.prepareImageForUpload
+                ? await window.prepareImageForUpload(file)
+                : "";
             if (imagePreview) {
                 imagePreview.src = selectedImageData;
                 imagePreview.hidden = false;
@@ -261,12 +255,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (imageEmptyState) {
                 imageEmptyState.hidden = true;
             }
-        };
-        reader.onerror = () => {
-            setMessage("Could not read the selected image.", "error");
+        } catch (error) {
+            setMessage(error.message || "Could not read the selected image.", "error");
             resetImageSelection();
-        };
-        reader.readAsDataURL(file);
+        }
     });
 
     form?.addEventListener("submit", async (event) => {

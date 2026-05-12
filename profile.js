@@ -346,6 +346,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const readDeviceImage = (file, onSuccess, onError) => {
+        if (file.type.startsWith("image/") && window.prepareImageForUpload) {
+            window.prepareImageForUpload(file)
+                .then(onSuccess)
+                .catch(onError);
+            return;
+        }
+
+        if (file.type.startsWith("video/") && file.size > 8_000_000) {
+            onError(new Error("Please choose a video smaller than 8 MB."));
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = () => {
             const result = typeof reader.result === "string" ? reader.result : "";
@@ -1060,8 +1072,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     postUploadEmpty.hidden = true;
                 }
             },
-            () => {
-                window.alert("Could not read the selected image.");
+            (error) => {
+                window.alert(error?.message || "Could not read the selected image.");
                 resetUploadPreview({
                     input: postImageInput,
                     preview: postImagePreview,
@@ -1103,8 +1115,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     commissionUploadEmpty.hidden = true;
                 }
             },
-            () => {
-                window.alert("Could not read the selected image.");
+            (error) => {
+                window.alert(error?.message || "Could not read the selected image.");
                 resetUploadPreview({
                     input: commissionImageInput,
                     preview: commissionImagePreview,
@@ -1146,8 +1158,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     portfolioUploadEmpty.hidden = true;
                 }
             },
-            () => {
-                window.alert("Could not read the selected image.");
+            (error) => {
+                window.alert(error?.message || "Could not read the selected image.");
                 resetUploadPreview({
                     input: portfolioImageInput,
                     preview: portfolioImagePreview,
@@ -1212,8 +1224,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     tutorialUploadEmpty.hidden = true;
                 }
             },
-            () => {
-                window.alert("Could not read the selected image.");
+            (error) => {
+                window.alert(error?.message || "Could not read the selected image.");
                 resetUploadPreview({
                     input: tutorialImageInput,
                     preview: tutorialImagePreview,
@@ -1740,47 +1752,46 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             });
 
-            profileImageInput.addEventListener("change", () => {
+            profileImageInput.addEventListener("change", async () => {
                 const [file] = profileImageInput.files || [];
 
                 if (!file) {
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = async () => {
-                    const result = typeof reader.result === "string" ? reader.result : "";
+                try {
+                    const result = window.prepareImageForUpload
+                        ? await window.prepareImageForUpload(file, { maxSide: 800, quality: 0.78, maxDataUrlLength: 1_500_000 })
+                        : "";
+
                     if (!result) {
                         return;
                     }
 
-                    try {
-                        const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
-                            method: "PUT",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                profileImage: result
-                            })
-                        });
+                    const saveData = await apiFetchJSON(`/api/users/${currentUser.id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            profileImage: result
+                        })
+                    });
 
-                        profileImageUrl = saveData.user.profileImage || result;
-                        currentUser = saveData.user;
-                        signedInUser = saveData.user;
-                        saveCurrentUser(saveData.user);
-                        localStorage.removeItem(`profileImage_${currentUser.id}`);
+                    profileImageUrl = saveData.user.profileImage || result;
+                    currentUser = saveData.user;
+                    signedInUser = saveData.user;
+                    saveCurrentUser(saveData.user);
+                    localStorage.removeItem(`profileImage_${currentUser.id}`);
 
-                        if (topAvatar) {
-                            topAvatar.src = profileImageUrl;
-                        }
-
-                        setHeroAvatarImage(profileImageUrl);
-                    } catch (error) {
-                        window.alert(error.message);
+                    if (topAvatar) {
+                        topAvatar.src = profileImageUrl;
                     }
-                };
-                reader.readAsDataURL(file);
+
+                    setHeroAvatarImage(profileImageUrl);
+                } catch (error) {
+                    window.alert(error.message);
+                }
             });
         }
 

@@ -219,15 +219,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             mediaTypeInput.value = fileType;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            selectedMediaData = typeof reader.result === "string" ? reader.result : "";
-
-            if (!selectedMediaData) {
-                setMessage("Could not read the selected media.", "error");
-                resetMediaSelection();
-                return;
-            }
+        const applySelectedMedia = (dataUrl) => {
+            selectedMediaData = dataUrl;
 
             if (uploadEmpty) {
                 uploadEmpty.hidden = true;
@@ -253,6 +246,35 @@ document.addEventListener("DOMContentLoaded", async () => {
                     videoPreview.load();
                 }
             }
+        };
+
+        if (fileType === "image" && window.prepareImageForUpload) {
+            window.prepareImageForUpload(file)
+                .then(applySelectedMedia)
+                .catch((error) => {
+                    setMessage(error.message || "Could not read the selected media.", "error");
+                    resetMediaSelection();
+                });
+            return;
+        }
+
+        if (fileType === "video" && file.size > 8_000_000) {
+            setMessage("Please choose a video smaller than 8 MB.", "error");
+            resetMediaSelection();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = typeof reader.result === "string" ? reader.result : "";
+
+            if (!result) {
+                setMessage("Could not read the selected media.", "error");
+                resetMediaSelection();
+                return;
+            }
+
+            applySelectedMedia(result);
         };
         reader.onerror = () => {
             setMessage("Could not read the selected media.", "error");

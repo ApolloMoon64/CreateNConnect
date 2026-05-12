@@ -1,3 +1,46 @@
+window.prepareImageForUpload = async (file, options = {}) => {
+    const maxSide = options.maxSide || 1400;
+    const quality = options.quality || 0.78;
+    const maxDataUrlLength = options.maxDataUrlLength || 4_000_000;
+
+    if (!file?.type?.startsWith('image/')) {
+        throw new Error('Please choose an image file.');
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    try {
+        await new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = () => reject(new Error('Could not read the selected image.'));
+            image.src = objectUrl;
+        });
+
+        const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+        const width = Math.max(1, Math.round(image.naturalWidth * scale));
+        const height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = width;
+        canvas.height = height;
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        if (dataUrl.length > maxDataUrlLength) {
+            throw new Error('Please choose a smaller image.');
+        }
+
+        return dataUrl;
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const currentUserRaw = localStorage.getItem('currentUser');
     const navAvatarImages = document.querySelectorAll('.profile-avatar img');
