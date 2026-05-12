@@ -21,6 +21,10 @@ function saveCurrentUser(user) {
   localStorage.setItem('currentUser', JSON.stringify(storageUser));
 }
 
+function isAdminUser() {
+  return Boolean(currentUser?.isAdmin);
+}
+
 function requireSignedInForAction(actionLabel = 'use this feature') {
   if (currentUser?.id && currentUser?.email) {
     return true;
@@ -524,6 +528,36 @@ function renderGroups() {
       }
     });
 
+    if (isAdminUser()) {
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'admin-delete-button';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async () => {
+        const confirmed = window.confirm(`Admin delete "${community.name}"? This removes the group and its messages.`);
+        if (!confirmed) {
+          return;
+        }
+
+        deleteButton.disabled = true;
+
+        try {
+          await apiFetchJSON(`/api/communities/${encodeURIComponent(community.id)}`, {
+            method: 'DELETE'
+          });
+          communities = communities.filter((item) => String(item.id) !== String(community.id));
+          if (String(activeCommunityId) === String(community.id)) {
+            activeCommunityId = (communities.find((item) => item.joined) || null)?.id || null;
+          }
+          renderAll();
+        } catch (error) {
+          deleteButton.disabled = false;
+          window.alert(error.message);
+        }
+      });
+      card.appendChild(deleteButton);
+    }
+
     card.appendChild(button);
     groupGrid.appendChild(card);
   });
@@ -666,7 +700,36 @@ function renderMeetings() {
       window.alert(`Generated meeting link:\n${meeting.zoomLink}`);
     });
 
-    actions.append(joinButton, viewLink, details);
+    actions.append(joinButton, viewLink);
+
+    if (isAdminUser()) {
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'admin-delete-button';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async () => {
+        const confirmed = window.confirm(`Admin delete "${meeting.title}"? This cannot be undone.`);
+        if (!confirmed) {
+          return;
+        }
+
+        deleteButton.disabled = true;
+
+        try {
+          await apiFetchJSON(`/api/meetings/${encodeURIComponent(meeting.id)}`, {
+            method: 'DELETE'
+          });
+          meetings = meetings.filter((item) => String(item.id) !== String(meeting.id));
+          renderMeetings();
+        } catch (error) {
+          deleteButton.disabled = false;
+          window.alert(error.message);
+        }
+      });
+      actions.appendChild(deleteButton);
+    }
+
+    actions.appendChild(details);
     card.appendChild(actions);
     meetingList.appendChild(card);
   });

@@ -461,6 +461,28 @@ h2 {
   font-weight: 700;
 }
 
+.admin-delete-button {
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.85rem 1.15rem;
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.admin-delete-button:hover {
+  background: rgba(220, 38, 38, 0.14);
+  transform: translateY(-1px);
+}
+
+.admin-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .ghost-button {
   width: 42px;
   height: 42px;

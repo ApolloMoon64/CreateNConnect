@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const currentUser = JSON.parse(currentUserRaw);
+    let isAdmin = Boolean(currentUser.isAdmin);
     let selectedImageData = "";
 
     const setMessage = (text, type = "") => {
@@ -72,6 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         saveCurrentUser(sessionData.user);
+        isAdmin = Boolean(sessionData.user.isAdmin);
     } catch (error) {
         localStorage.removeItem("currentUser");
         window.location.href = "auth.html";
@@ -96,6 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const renderCommission = (commission) => {
         const isOwner = String(commission.userId) === String(currentUser.id);
+        const canModerate = isOwner || isAdmin;
         const isAvailable = commission.availabilityStatus === "available";
         const buyerActions = isAvailable
             ? `<div class="commission-card-actions">
@@ -135,8 +138,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </p>
                 <p>$${Number(commission.price).toFixed(2)}</p>
                 <p class="content-card-copy">${commission.description || "Commission details available on request."}</p>
-                ${isOwner
-                    ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" type="button">Remove</button>`
+                ${canModerate
+                    ? `<button class="btn btn-secondary commission-delete-btn" data-commission-id="${commission.id}" data-owner-id="${commission.userId}" type="button">${isAdmin && !isOwner ? "Admin remove" : "Remove"}</button>`
                     : buyerActions}
             </article>
         `;
@@ -212,9 +215,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     };
 
-    const deleteCommission = async (commissionId) => {
+    const deleteCommission = async (commissionId, ownerId = currentUser.id) => {
         try {
-            await apiFetchJSON(`/api/commissions/${commissionId}?userId=${encodeURIComponent(currentUser.id)}`, {
+            await apiFetchJSON(`/api/commissions/${commissionId}?userId=${encodeURIComponent(ownerId)}`, {
                 method: "DELETE"
             });
 
@@ -319,7 +322,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const deleteButton = event.target.closest(".commission-delete-btn");
             if (!deleteButton) return;
 
-            deleteCommission(deleteButton.dataset.commissionId);
+            deleteCommission(deleteButton.dataset.commissionId, deleteButton.dataset.ownerId);
         });
     });
 

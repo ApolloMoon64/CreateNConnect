@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   social_handle VARCHAR(120) NOT NULL DEFAULT '@artist_handle',
   portfolio_label VARCHAR(160) NOT NULL DEFAULT 'Portfolio link',
   specialties JSON NOT NULL,
+  is_admin TINYINT(1) NOT NULL DEFAULT 0,
   joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY users_email_unique (email)

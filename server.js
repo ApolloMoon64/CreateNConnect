@@ -21,10 +21,13 @@ const {
     createTradeConversation,
     createUser,
     deleteCommissionById,
+    deleteCommunityById,
+    deleteMeetingById,
     deletePortfolioItemById,
     deletePostById,
     deleteTutorialById,
     deleteUserById,
+    ensureAdminUser,
     findUserByEmail,
     followUser,
     addMeetingAttendee,
@@ -125,6 +128,7 @@ function sanitizeUser(user, { includeProfileImage = false } = {}) {
         social: user.social,
         portfolio: user.portfolio,
         specialties: Array.isArray(user.specialties) ? user.specialties : [],
+        isAdmin: Boolean(user.isAdmin),
         joinedAt: user.joinedAt
     };
 
@@ -366,6 +370,36 @@ async function requireResourceOwner(req, res, userId) {
 
     if (String(user.id) !== String(userId)) {
         sendJSON(res, 403, { error: "You can only change your own content." });
+        return null;
+    }
+
+    return user;
+}
+
+async function requireContentOwnerOrAdmin(req, res, userId) {
+    const user = await requireAuthenticatedUser(req, res);
+
+    if (!user) {
+        return null;
+    }
+
+    if (user.isAdmin || String(user.id) === String(userId)) {
+        return user;
+    }
+
+    sendJSON(res, 403, { error: "You can only change your own content." });
+    return null;
+}
+
+async function requireAdminUser(req, res) {
+    const user = await requireAuthenticatedUser(req, res);
+
+    if (!user) {
+        return null;
+    }
+
+    if (!user.isAdmin) {
+        sendJSON(res, 403, { error: "Admin access is required." });
         return null;
     }
 
@@ -848,6 +882,25 @@ async function handleRequest(req, res) {
             return;
         }
 
+        if (req.method === "DELETE" && pathname.match(/^\/api\/meetings\/[^/]+$/)) {
+            const adminUser = await requireAdminUser(req, res);
+
+            if (!adminUser) {
+                return;
+            }
+
+            const meetingId = pathname.split("/")[3];
+            const deleted = await deleteMeetingById(meetingId);
+
+            if (!deleted) {
+                sendJSON(res, 404, { error: "Meeting not found." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
+            return;
+        }
+
         if (req.method === "POST" && pathname === "/api/meetings/email-invite") {
             const authenticatedUser = await requireAuthenticatedUser(req, res);
 
@@ -1082,6 +1135,25 @@ async function handleRequest(req, res) {
             const joinedCommunity = communities.find((item) => String(item.id) === String(communityId));
 
             sendJSON(res, 200, { community: joinedCommunity });
+            return;
+        }
+
+        if (req.method === "DELETE" && pathname.match(/^\/api\/communities\/[^/]+$/)) {
+            const adminUser = await requireAdminUser(req, res);
+
+            if (!adminUser) {
+                return;
+            }
+
+            const communityId = pathname.split("/")[3];
+            const deleted = await deleteCommunityById(communityId);
+
+            if (!deleted) {
+                sendJSON(res, 404, { error: "Community not found." });
+                return;
+            }
+
+            sendJSON(res, 200, { success: true });
             return;
         }
 
@@ -1725,13 +1797,13 @@ async function handleRequest(req, res) {
 
         if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/posts\/[^/]+$/)) {
             const [, , , userId, , postId] = pathname.split("/");
-            const user = await requireResourceOwner(req, res, userId);
+            const user = await requireContentOwnerOrAdmin(req, res, userId);
 
             if (!user) {
                 return;
             }
 
-            const deleted = await deletePostById(postId, userId);
+            const deleted = await deletePostById(postId, user.isAdmin ? null : userId);
 
             if (!deleted) {
                 sendJSON(res, 404, { error: "Post not found for this user." });
@@ -1786,13 +1858,13 @@ async function handleRequest(req, res) {
 
         if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/portfolio\/[^/]+$/)) {
             const [, , , userId, , itemId] = pathname.split("/");
-            const user = await requireResourceOwner(req, res, userId);
+            const user = await requireContentOwnerOrAdmin(req, res, userId);
 
             if (!user) {
                 return;
             }
 
-            const deleted = await deletePortfolioItemById(itemId, userId);
+            const deleted = await deletePortfolioItemById(itemId, user.isAdmin ? null : userId);
 
             if (!deleted) {
                 sendJSON(res, 404, { error: "Portfolio item not found for this user." });
@@ -1846,13 +1918,13 @@ async function handleRequest(req, res) {
 
         if (req.method === "DELETE" && pathname.match(/^\/api\/users\/[^/]+\/tutorials\/[^/]+$/)) {
             const [, , , userId, , tutorialId] = pathname.split("/");
-            const user = await requireResourceOwner(req, res, userId);
+            const user = await requireContentOwnerOrAdmin(req, res, userId);
 
             if (!user) {
                 return;
             }
 
-            const deleted = await deleteTutorialById(tutorialId, userId);
+            const deleted = await deleteTutorialById(tutorialId, user.isAdmin ? null : userId);
 
             if (!deleted) {
                 sendJSON(res, 404, { error: "Tutorial not found for this user." });
@@ -1997,12 +2069,12 @@ async function handleRequest(req, res) {
                 return;
             }
 
-            const user = await requireResourceOwner(req, res, userId);
+            const user = await requireContentOwnerOrAdmin(req, res, userId);
             if (!user) {
                 return;
             }
 
-            const deleted = await deleteCommissionById(commissionId, userId);
+            const deleted = await deleteCommissionById(commissionId, user.isAdmin ? null : userId);
 
             if (!deleted) {
                 sendJSON(res, 404, { error: "Commission not found for this user." });
@@ -2048,9 +2120,36 @@ async function handleRequest(req, res) {
 
 async function createServer() {
     await initializeDatabase();
+    await ensureConfiguredAdminUser();
 
     return http.createServer((req, res) => {
         handleRequest(req, res);
+    });
+}
+
+async function ensureConfiguredAdminUser() {
+    const adminEmail = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+    const adminPassword = String(process.env.ADMIN_PASSWORD || "");
+    const adminName = String(process.env.ADMIN_NAME || "CreateNConnect Admin").trim();
+
+    if (!adminEmail && !adminPassword) {
+        return;
+    }
+
+    if (!adminEmail || !adminPassword) {
+        console.warn("ADMIN_EMAIL and ADMIN_PASSWORD must both be set to create the admin account.");
+        return;
+    }
+
+    if (adminPassword.length < 8) {
+        console.warn("ADMIN_PASSWORD must be at least 8 characters. Admin account was not created.");
+        return;
+    }
+
+    await ensureAdminUser({
+        name: adminName,
+        email: adminEmail,
+        passwordHash: hashPassword(adminPassword)
     });
 }
 

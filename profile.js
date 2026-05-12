@@ -86,6 +86,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let signedInUser = null;
     const targetUserId = profileUserId || currentUser?.id;
     let isOwnProfile = false;
+    let isAdmin = false;
 
     const saveCurrentUser = (user) => {
         const { profileImage, ...storageUser } = user || {};
@@ -220,6 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             signedInUser = sessionData.user;
             currentUser = sessionData.user;
             isOwnProfile = String(signedInUser.id) === String(targetUserId);
+            isAdmin = Boolean(signedInUser.isAdmin);
             saveCurrentUser(sessionData.user);
         } catch (error) {
             localStorage.removeItem("currentUser");
@@ -385,7 +387,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const createDeleteButtonMarkup = (section, id, label) => {
-        if (!isOwnProfile) {
+        if (!isOwnProfile && !isAdmin) {
             return "";
         }
 
@@ -704,7 +706,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const getDeleteEndpoint = (section, id) => {
-        const encodedUserId = encodeURIComponent(currentUser.id);
+        const encodedUserId = encodeURIComponent(targetUserId);
         const encodedId = encodeURIComponent(id);
 
         if (section === "posts") {
@@ -748,7 +750,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     const bindDynamicDeleteButtons = () => {
-        if (!isOwnProfile) {
+        if (!isOwnProfile && !isAdmin) {
             return;
         }
 
@@ -770,7 +772,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
-                const confirmed = window.confirm("Delete this item? This cannot be undone.");
+                const confirmed = window.confirm(
+                    isAdmin && !isOwnProfile
+                        ? "Admin delete this item? This cannot be undone."
+                        : "Delete this item? This cannot be undone."
+                );
                 if (!confirmed) {
                     return;
                 }

@@ -54,6 +54,7 @@ function mapUser(row) {
         social: row.social_handle,
         portfolio: row.portfolio_label,
         specialties: parseSpecialties(row.specialties),
+        isAdmin: Boolean(row.is_admin),
         joinedAt: row.joined_at instanceof Date ? row.joined_at.toISOString() : row.joined_at
     };
 }
@@ -327,6 +328,7 @@ async function initializeDatabase() {
             social_handle VARCHAR(120) NOT NULL DEFAULT '@artist_handle',
             portfolio_label VARCHAR(160) NOT NULL DEFAULT 'Portfolio link',
             specialties JSON NOT NULL,
+            is_admin TINYINT(1) NOT NULL DEFAULT 0,
             joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             UNIQUE KEY users_email_unique (email)
@@ -372,6 +374,13 @@ async function initializeDatabase() {
         await pool.query(`
             ALTER TABLE users
             ADD COLUMN profile_image LONGTEXT NULL AFTER contact_email
+        `);
+    }
+
+    if (!existingColumns.has("is_admin")) {
+        await pool.query(`
+            ALTER TABLE users
+            ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER specialties
         `);
     }
 
@@ -737,7 +746,7 @@ async function healthCheck() {
 
 async function findUserByEmail(email) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, contact_email, profile_image, password_hash, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, profile_image, password_hash, bio, social_handle, portfolio_label, specialties, is_admin, joined_at
          FROM users
          WHERE email = ?
          LIMIT 1`,
@@ -770,9 +779,41 @@ async function createUser({ name, email, passwordHash }) {
     return getUserById(result.insertId);
 }
 
+async function ensureAdminUser({ name, email, passwordHash }) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const cleanName = String(name || "CreateNConnect Admin").trim();
+
+    if (!normalizedEmail || !passwordHash) {
+        return null;
+    }
+
+    const existingUser = await findUserByEmail(normalizedEmail);
+
+    if (existingUser) {
+        await pool.query(
+            `UPDATE users
+             SET is_admin = 1, password_hash = ?
+             WHERE id = ?`,
+            [passwordHash, existingUser.id]
+        );
+        return getUserById(existingUser.id);
+    }
+
+    const specialties = JSON.stringify(["Moderation", "Community"]);
+    const bio = "CreateNConnect moderation account.";
+
+    const [result] = await pool.query(
+        `INSERT INTO users (name, email, contact_email, password_hash, bio, social_handle, portfolio_label, specialties, is_admin)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [cleanName, normalizedEmail, normalizedEmail, passwordHash, bio, "@createnconnect_admin", "Admin dashboard", specialties]
+    );
+
+    return getUserById(result.insertId);
+}
+
 async function getUserById(id) {
     const [rows] = await pool.query(
-        `SELECT id, name, email, contact_email, profile_image, bio, social_handle, portfolio_label, specialties, joined_at
+        `SELECT id, name, email, contact_email, profile_image, bio, social_handle, portfolio_label, specialties, is_admin, joined_at
          FROM users
          WHERE id = ?
          LIMIT 1`,
@@ -1262,6 +1303,11 @@ async function createCommission({ userId, title, artist, description, category, 
 }
 
 async function deleteCommissionById(id, userId) {
+    if (userId === null || userId === undefined) {
+        const [result] = await pool.query("DELETE FROM commissions WHERE id = ?", [id]);
+        return result.affectedRows > 0;
+    }
+
     const [result] = await pool.query(
         "DELETE FROM commissions WHERE id = ? AND user_id = ?",
         [id, userId]
@@ -1270,6 +1316,11 @@ async function deleteCommissionById(id, userId) {
 }
 
 async function deletePostById(id, userId) {
+    if (userId === null || userId === undefined) {
+        const [result] = await pool.query("DELETE FROM posts WHERE id = ?", [id]);
+        return result.affectedRows > 0;
+    }
+
     const [result] = await pool.query(
         "DELETE FROM posts WHERE id = ? AND user_id = ?",
         [id, userId]
@@ -1278,6 +1329,11 @@ async function deletePostById(id, userId) {
 }
 
 async function deletePortfolioItemById(id, userId) {
+    if (userId === null || userId === undefined) {
+        const [result] = await pool.query("DELETE FROM portfolio_items WHERE id = ?", [id]);
+        return result.affectedRows > 0;
+    }
+
     const [result] = await pool.query(
         "DELETE FROM portfolio_items WHERE id = ? AND user_id = ?",
         [id, userId]
@@ -1286,6 +1342,11 @@ async function deletePortfolioItemById(id, userId) {
 }
 
 async function deleteTutorialById(id, userId) {
+    if (userId === null || userId === undefined) {
+        const [result] = await pool.query("DELETE FROM tutorials WHERE id = ?", [id]);
+        return result.affectedRows > 0;
+    }
+
     const [result] = await pool.query(
         "DELETE FROM tutorials WHERE id = ? AND user_id = ?",
         [id, userId]
@@ -1558,6 +1619,16 @@ async function addMeetingAttendee(id, attendeeEmail) {
     return getMeetingById(id);
 }
 
+async function deleteMeetingById(id) {
+    const [result] = await pool.query("DELETE FROM meetings WHERE id = ?", [id]);
+    return result.affectedRows > 0;
+}
+
+async function deleteCommunityById(id) {
+    const [result] = await pool.query("DELETE FROM communities WHERE id = ?", [id]);
+    return result.affectedRows > 0;
+}
+
 async function createDirectConversation({ userAId, userBId }) {
     const lowUserId = Number(userAId) < Number(userBId) ? userAId : userBId;
     const highUserId = Number(userAId) < Number(userBId) ? userBId : userAId;
@@ -1784,10 +1855,13 @@ module.exports = {
     createTradeConversation,
     createUser,
     deleteCommissionById,
+    deleteCommunityById,
+    deleteMeetingById,
     deletePortfolioItemById,
     deletePostById,
     deleteTutorialById,
     deleteUserById,
+    ensureAdminUser,
     findUserByEmail,
     followUser,
     getFollowSummary,
