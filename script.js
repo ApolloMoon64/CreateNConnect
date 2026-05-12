@@ -34,6 +34,44 @@ document.addEventListener('DOMContentLoaded', () => {
         showAnonymousAvatar();
     }
 
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const publicPages = new Set(['index.html', 'auth.html', 'reset-password.html']);
+    const isSignedIn = Boolean(currentUser?.id);
+
+    if (!isSignedIn && !publicPages.has(currentPage)) {
+        sessionStorage.setItem('authNotice', 'Please create an account or log in to continue.');
+        window.location.href = 'auth.html';
+        return;
+    }
+
+    const applyAuthNavigationState = () => {
+        const navLinks = document.querySelector('.top-nav .nav-links');
+        const authLink = navLinks?.querySelector('a[href="auth.html"]');
+
+        if (!navLinks) {
+            return;
+        }
+
+        navLinks.querySelectorAll('.nav-item').forEach((item) => {
+            const href = item.getAttribute('href');
+            const isPublicNavItem = href === 'index.html' || href === 'auth.html';
+            item.hidden = !isSignedIn && !isPublicNavItem;
+        });
+
+        if (authLink && isSignedIn) {
+            authLink.href = 'profile.html';
+            authLink.innerHTML = '<i class="ph ph-user"></i> Profile';
+        }
+
+        if (!isSignedIn) {
+            document.querySelectorAll('.sidebar').forEach((sidebar) => {
+                sidebar.hidden = true;
+            });
+        }
+    };
+
+    applyAuthNavigationState();
+
     const readResponsePayload = async (response) => {
         const raw = await response.text();
 
@@ -603,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const navLinks = document.querySelector('.top-nav .nav-links');
-    if (navLinks && !navLinks.querySelector('a[href="messages.html"]')) {
+    if (isSignedIn && navLinks && !navLinks.querySelector('a[href="messages.html"]')) {
         const messagesLink = document.createElement('a');
         messagesLink.href = 'messages.html';
         messagesLink.className = 'nav-item';
@@ -611,9 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const authLink = navLinks.querySelector('a[href="auth.html"]');
         navLinks.insertBefore(messagesLink, authLink || null);
+        applyAuthNavigationState();
     }
 
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const navItems = document.querySelectorAll('.top-nav .nav-item');
     navItems.forEach((item) => {
         const href = item.getAttribute('href');
