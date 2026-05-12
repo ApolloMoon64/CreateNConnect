@@ -14,6 +14,7 @@ const {
     createPasswordResetToken,
     createPortfolioItem,
     createCommission,
+    createMeeting,
     createPost,
     createPurchase,
     createTutorial,
@@ -26,9 +27,11 @@ const {
     deleteUserById,
     findUserByEmail,
     followUser,
+    addMeetingAttendee,
     getCommunityById,
     getConversationForUser,
     getFollowSummary,
+    getMeetingById,
     getPurchasableItem,
     getValidPasswordResetToken,
     getUserById,
@@ -44,6 +47,7 @@ const {
     listCommissionsByUserId,
     listFollowers,
     listFollowing,
+    listMeetings,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
@@ -426,6 +430,19 @@ function isSenderAddress(value) {
     return Boolean(email && senderEmail && email === senderEmail);
 }
 
+function formatMeetingDateTime(value) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value || "Scheduled time");
+    }
+
+    return date.toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
+}
+
 function getAppBaseUrl(req) {
     if (process.env.APP_BASE_URL) {
         return String(process.env.APP_BASE_URL).replace(/\/+$/, "");
@@ -721,6 +738,100 @@ async function handleRequest(req, res) {
                 success: true,
                 delivered: emailResult.delivered
             });
+            return;
+        }
+
+        if (req.method === "GET" && pathname === "/api/meetings") {
+            const meetings = await listMeetings();
+            sendJSON(res, 200, { meetings });
+            return;
+        }
+
+        if (req.method === "POST" && pathname === "/api/meetings") {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const { title, type, region, capacity, dateTime, location, description, theme, zoomLink } = await readBody(req);
+
+            if (!title || !type || !region || !capacity || !dateTime || !location || !description || !zoomLink) {
+                sendJSON(res, 400, { error: "Title, type, region, capacity, time, location, description, and Zoom link are required." });
+                return;
+            }
+
+            const numericCapacity = Number(capacity);
+            if (!Number.isInteger(numericCapacity) || numericCapacity < 2) {
+                sendJSON(res, 400, { error: "Capacity must be at least 2 people." });
+                return;
+            }
+
+            const meeting = await createMeeting({
+                hostUserId: authenticatedUser.id,
+                title: String(title).trim(),
+                type: String(type).trim(),
+                region: String(region).trim(),
+                capacity: numericCapacity,
+                dateTime: String(dateTime).trim(),
+                location: String(location).trim(),
+                hostEmail: String(authenticatedUser.email || "").trim().toLowerCase(),
+                description: String(description).trim(),
+                theme: String(theme || "sunrise").trim(),
+                zoomLink: String(zoomLink).trim()
+            });
+
+            sendJSON(res, 201, { meeting });
+            return;
+        }
+
+        if (req.method === "POST" && pathname.match(/^\/api\/meetings\/[^/]+\/join$/)) {
+            const authenticatedUser = await requireAuthenticatedUser(req, res);
+
+            if (!authenticatedUser) {
+                return;
+            }
+
+            const meetingId = pathname.split("/")[3];
+            const meeting = await getMeetingById(meetingId);
+
+            if (!meeting) {
+                sendJSON(res, 404, { error: "Meeting not found." });
+                return;
+            }
+
+            const normalizedEmail = String(authenticatedUser.email || "").trim().toLowerCase();
+            if (!isValidEmailAddress(normalizedEmail) || isDemoEmailAddress(normalizedEmail) || isSenderAddress(normalizedEmail)) {
+                sendJSON(res, 400, { error: "Please log in with a real account email before joining a meeting." });
+                return;
+            }
+
+            if (meeting.attendees.includes(normalizedEmail)) {
+                sendJSON(res, 409, { error: "Your account is already signed up for this meeting.", meeting });
+                return;
+            }
+
+            if (meeting.attendees.length >= meeting.capacity) {
+                sendJSON(res, 409, { error: "This meeting is full." });
+                return;
+            }
+
+            const emailResult = await sendMeetingInviteEmail({
+                recipientEmail: normalizedEmail,
+                recipientName: authenticatedUser.name || "Creator",
+                meeting: {
+                    title: meeting.title,
+                    type: meeting.type,
+                    region: meeting.region,
+                    dateTimeLabel: formatMeetingDateTime(meeting.dateTime),
+                    location: meeting.location,
+                    description: meeting.description,
+                    zoomLink: meeting.zoomLink
+                }
+            });
+            const updatedMeeting = await addMeetingAttendee(meetingId, normalizedEmail);
+
+            sendJSON(res, 200, { ...emailResult, meeting: updatedMeeting });
             return;
         }
 

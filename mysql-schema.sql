@@ -173,6 +173,30 @@ CREATE TABLE IF NOT EXISTS notifications (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS meetings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  host_user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  meeting_type VARCHAR(80) NOT NULL,
+  region VARCHAR(80) NOT NULL,
+  capacity INT UNSIGNED NOT NULL,
+  attendees_json JSON NOT NULL,
+  date_time VARCHAR(40) NOT NULL,
+  location VARCHAR(180) NOT NULL,
+  host_email VARCHAR(190) NOT NULL,
+  description TEXT NOT NULL,
+  theme VARCHAR(40) NOT NULL DEFAULT 'sunrise',
+  zoom_link VARCHAR(255) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY meetings_date_time_index (date_time),
+  KEY meetings_region_index (region),
+  KEY meetings_host_user_id_index (host_user_id),
+  CONSTRAINT meetings_host_user_id_fk
+    FOREIGN KEY (host_user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,

@@ -1,4 +1,3 @@
-const meetingStorageKey = 'connect-page-meetings';
 const profileStorageKey = 'connect-page-profile';
 
 const themeStyles = {
@@ -8,47 +7,14 @@ const themeStyles = {
   midnight: 'linear-gradient(135deg, #7261ff, #1f2855)'
 };
 
-const defaultMeetings = [
-  {
-    id: crypto.randomUUID(),
-    title: 'Character Design Critique',
-    type: 'Critique',
-    region: 'North America',
-    capacity: 12,
-    attendees: ['maya@studio.com', 'iris@studio.com', 'leo@studio.com', 'nora@studio.com'],
-    dateTime: '2026-04-18T18:30',
-    location: 'Boston studio + Zoom hybrid',
-    hostEmail: 'host@makerslounge.com',
-    description: 'Bring one character sheet and be ready for live visual feedback focused on silhouette, color, and storytelling.',
-    theme: 'sunrise',
-    zoomLink: createZoomLink()
-  },
-  {
-    id: crypto.randomUUID(),
-    title: 'Global Crochet Hangout',
-    type: 'Community check-in',
-    region: 'Asia',
-    capacity: 8,
-    attendees: ['sam@threadmail.com', 'ivy@threadmail.com', 'zoe@threadmail.com', 'tess@threadmail.com', 'alma@threadmail.com', 'rui@threadmail.com', 'noa@threadmail.com'],
-    dateTime: '2026-04-21T09:00',
-    location: 'Online',
-    hostEmail: 'loops@crochetcommons.com',
-    description: 'A relaxed catch-up for pattern swaps, show-and-tell, and one quick problem-solving round for tricky stitches.',
-    theme: 'forest',
-    zoomLink: createZoomLink()
-  }
-];
-
 let communities = [];
-let meetings = readStorage(meetingStorageKey, defaultMeetings);
+let meetings = [];
 let currentUser = getCurrentUser();
 let selectedRegion = 'All';
 let activeCommunityId = null;
 let messagePollTimer = null;
 let messagePollInFlight = false;
 const messagePollIntervalMs = 3000;
-
-removeExpiredMeetings();
 
 function saveCurrentUser(user) {
   const { profileImage, ...storageUser } = user || {};
@@ -172,7 +138,7 @@ function bindEvents() {
     }
   });
 
-  meetingForm.addEventListener('submit', (event) => {
+  meetingForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     if (!requireSignedInForAction('create Zoom meetings')) {
@@ -191,28 +157,34 @@ function bindEvents() {
     submitButton.disabled = true;
     meetingFormStatus.textContent = 'Creating meeting...';
 
-    const newMeeting = {
-      id: crypto.randomUUID(),
-      title: String(formData.get('title')).trim(),
-      type: String(formData.get('type')).trim(),
-      region: String(formData.get('region')).trim(),
-      capacity: Number(formData.get('capacity')),
-      attendees: [],
-      dateTime: meetingDateTime,
-      location: String(formData.get('location')).trim(),
-      hostEmail: currentUser.email || '',
-      description: String(formData.get('description')).trim(),
-      theme: String(formData.get('theme')).trim(),
-      zoomLink: createZoomLink()
-    };
+    try {
+      const data = await apiFetchJSON('/api/meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: String(formData.get('title')).trim(),
+          type: String(formData.get('type')).trim(),
+          region: String(formData.get('region')).trim(),
+          capacity: Number(formData.get('capacity')),
+          dateTime: meetingDateTime,
+          location: String(formData.get('location')).trim(),
+          description: String(formData.get('description')).trim(),
+          theme: String(formData.get('theme')).trim(),
+          zoomLink: createZoomLink()
+        })
+      });
 
-    meetings = [newMeeting, ...meetings];
-    persistMeetings();
-
-    meetingForm.reset();
-    meetingFormStatus.textContent = `Created "${newMeeting.title}" and prepared the host Zoom details.`;
-    submitButton.disabled = false;
-    renderMeetings();
+      meetings = [data.meeting, ...meetings];
+      meetingForm.reset();
+      meetingFormStatus.textContent = `Created "${data.meeting.title}" and shared it on the live board.`;
+      renderMeetings();
+    } catch (error) {
+      meetingFormStatus.textContent = error.message;
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 
   communityForm.addEventListener('submit', async (event) => {
@@ -276,6 +248,7 @@ async function initializeConnectPage() {
   setCommunityFormsEnabled(false);
 
   try {
+    await loadMeetings();
     const sessionData = await apiFetchJSON('/api/auth/me');
     currentUser = sessionData.user;
     saveCurrentUser(currentUser);
@@ -286,6 +259,12 @@ async function initializeConnectPage() {
     setCommunityFormsEnabled(true);
   } catch (error) {
     stopMessagePolling();
+    try {
+      await loadMeetings();
+    } catch (meetingError) {
+      meetings = [];
+      renderMeetings();
+    }
     communities = [];
     activeCommunityId = null;
     localStorage.removeItem('currentUser');
@@ -300,6 +279,12 @@ async function initializeConnectPage() {
     setMeetingFormEnabled(false);
     setCommunityFormsEnabled(false);
   }
+}
+
+async function loadMeetings() {
+  const data = await apiFetchJSON('/api/meetings');
+  meetings = data.meetings || [];
+  renderMeetings();
 }
 
 async function loadCommunities() {
@@ -646,37 +631,18 @@ function renderMeetings() {
       }
 
       try {
-        const emailResult = await apiFetchJSON('/api/meetings/email-invite', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            recipientEmail: normalizedEmail,
-            recipientName: currentUser.name || 'Creator',
-            meetingTitle: meeting.title,
-            meetingType: meeting.type,
-            meetingRegion: meeting.region,
-            meetingDateTimeLabel: formatDateTime(meeting.dateTime),
-            meetingLocation: meeting.location,
-            meetingDescription: meeting.description,
-            zoomLink: meeting.zoomLink
-          })
+        const joinResult = await apiFetchJSON(`/api/meetings/${encodeURIComponent(meeting.id)}/join`, {
+          method: 'POST'
         });
 
         meetings = meetings.map((item) => {
-          if (item.id !== meeting.id) return item;
-
-          return {
-            ...item,
-            attendees: [...item.attendees, normalizedEmail]
-          };
+          if (String(item.id) !== String(meeting.id)) return item;
+          return joinResult.meeting;
         });
 
-        persistMeetings();
         renderMeetings();
 
-        if (emailResult.delivered) {
+        if (joinResult.delivered) {
           window.alert(`Meeting details and the Zoom link were sent to ${normalizedEmail}.`);
         } else {
           window.alert('You joined the meeting, but email delivery is not configured yet on this local server.');
@@ -717,10 +683,6 @@ function getFilteredMeetings() {
   return upcomingMeetings.filter((meeting) => meeting.region === selectedRegion);
 }
 
-function persistMeetings() {
-  localStorage.setItem(meetingStorageKey, JSON.stringify(meetings));
-}
-
 function isPastMeeting(meeting) {
   const meetingTime = new Date(meeting?.dateTime || '').getTime();
 
@@ -739,7 +701,6 @@ function removeExpiredMeetings() {
   }
 
   meetings = activeMeetings;
-  persistMeetings();
 }
 
 function readStorage(key, fallback) {

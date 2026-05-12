@@ -265,6 +265,45 @@ function mapDirectMessage(row) {
     };
 }
 
+function parseMeetingAttendees(value) {
+    if (!value) {
+        return [];
+    }
+
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function mapMeeting(row) {
+    if (!row) {
+        return null;
+    }
+
+    return {
+        id: row.id,
+        title: row.title,
+        type: row.meeting_type,
+        region: row.region,
+        capacity: Number(row.capacity),
+        attendees: parseMeetingAttendees(row.attendees_json),
+        dateTime: row.date_time,
+        location: row.location,
+        hostEmail: row.host_email,
+        description: row.description,
+        theme: row.theme,
+        zoomLink: row.zoom_link,
+        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+    };
+}
+
 async function initializeDatabase() {
     const bootstrapPool = mysql.createPool(basePoolConfig);
 
@@ -484,6 +523,32 @@ async function initializeDatabase() {
                 ON DELETE CASCADE,
             CONSTRAINT community_messages_user_id_fk
                 FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS meetings (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            host_user_id BIGINT UNSIGNED NOT NULL,
+            title VARCHAR(180) NOT NULL,
+            meeting_type VARCHAR(80) NOT NULL,
+            region VARCHAR(80) NOT NULL,
+            capacity INT UNSIGNED NOT NULL,
+            attendees_json JSON NOT NULL,
+            date_time VARCHAR(40) NOT NULL,
+            location VARCHAR(180) NOT NULL,
+            host_email VARCHAR(190) NOT NULL,
+            description TEXT NOT NULL,
+            theme VARCHAR(40) NOT NULL DEFAULT 'sunrise',
+            zoom_link VARCHAR(255) NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY meetings_date_time_index (date_time),
+            KEY meetings_region_index (region),
+            KEY meetings_host_user_id_index (host_user_id),
+            CONSTRAINT meetings_host_user_id_fk
+                FOREIGN KEY (host_user_id) REFERENCES users(id)
                 ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
@@ -1441,6 +1506,58 @@ async function listUserArtworks(userId) {
     }));
 }
 
+async function listMeetings() {
+    const [rows] = await pool.query(
+        `SELECT id, host_user_id, title, meeting_type, region, capacity, attendees_json, date_time, location, host_email, description, theme, zoom_link, created_at
+         FROM meetings
+         ORDER BY date_time ASC, id ASC`
+    );
+
+    return rows.map(mapMeeting);
+}
+
+async function getMeetingById(id) {
+    const [rows] = await pool.query(
+        `SELECT id, host_user_id, title, meeting_type, region, capacity, attendees_json, date_time, location, host_email, description, theme, zoom_link, created_at
+         FROM meetings
+         WHERE id = ?
+         LIMIT 1`,
+        [id]
+    );
+
+    return mapMeeting(rows[0]);
+}
+
+async function createMeeting({ hostUserId, title, type, region, capacity, dateTime, location, hostEmail, description, theme, zoomLink }) {
+    const [result] = await pool.query(
+        `INSERT INTO meetings (host_user_id, title, meeting_type, region, capacity, attendees_json, date_time, location, host_email, description, theme, zoom_link)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [hostUserId, title, type, region, capacity, JSON.stringify([]), dateTime, location, hostEmail, description, theme, zoomLink]
+    );
+
+    return getMeetingById(result.insertId);
+}
+
+async function addMeetingAttendee(id, attendeeEmail) {
+    const meeting = await getMeetingById(id);
+
+    if (!meeting) {
+        return null;
+    }
+
+    const normalizedEmail = String(attendeeEmail || "").trim().toLowerCase();
+    const attendees = Array.from(new Set([...(meeting.attendees || []), normalizedEmail]));
+
+    await pool.query(
+        `UPDATE meetings
+         SET attendees_json = ?
+         WHERE id = ?`,
+        [JSON.stringify(attendees), id]
+    );
+
+    return getMeetingById(id);
+}
+
 async function createDirectConversation({ userAId, userBId }) {
     const lowUserId = Number(userAId) < Number(userBId) ? userAId : userBId;
     const highUserId = Number(userAId) < Number(userBId) ? userBId : userAId;
@@ -1660,6 +1777,7 @@ module.exports = {
     createPasswordResetToken,
     createPortfolioItem,
     createCommission,
+    createMeeting,
     createPost,
     createPurchase,
     createTutorial,
@@ -1676,6 +1794,7 @@ module.exports = {
     getValidPasswordResetToken,
     getUserById,
     getConversationForUser,
+    getMeetingById,
     getPurchasableItem,
     getCommunityById,
     healthCheck,
@@ -1690,12 +1809,14 @@ module.exports = {
     listCommissionsByUserId,
     listFollowers,
     listFollowing,
+    listMeetings,
     listPortfolioItemsByUserId,
     listPostsByUserId,
     listTutorialsByUserId,
     listUserArtworks,
     joinCommunity,
     markAllNotificationsRead,
+    addMeetingAttendee,
     markArtworkTraded,
     markNotificationRead,
     markPasswordResetTokenUsed,
