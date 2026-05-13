@@ -75,6 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const profileSocialInput = document.getElementById("profile-edit-social-input");
     const profilePortfolioInput = document.getElementById("profile-edit-portfolio-input");
     const profileEmailInput = document.getElementById("profile-edit-email-input");
+    const profileSpecialtiesInput = document.getElementById("profile-edit-specialties-input");
     const profileLinksView = document.querySelector("[data-profile-links-view]");
 
     if (!currentUserRaw && !profileUserId) {
@@ -1580,7 +1581,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             bio: user.bio || "",
             social: user.social || "",
             portfolio: user.portfolio || "",
-            email: user.contactEmail ?? user.email ?? ""
+            email: user.contactEmail ?? user.email ?? "",
+            specialties: Array.isArray(user.specialties) ? user.specialties : []
         };
 
         if (profileHeadlineActions && signedInUser && !isOwnProfile && !document.getElementById("profile-message-btn")) {
@@ -1654,6 +1656,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 portfolioLink.target = websiteHref === "#" ? "" : "_blank";
                 portfolioLink.rel = websiteHref === "#" ? "" : "noopener noreferrer";
             }
+
+            if (specialtyList) {
+                specialtyList.innerHTML = profileDetails.specialties.length
+                    ? profileDetails.specialties
+                        .map((specialty) => `<span class="tag-pill">${escapeHtml(specialty)}</span>`)
+                        .join("")
+                    : '<span class="tag-pill">Artwork</span>';
+            }
         };
 
         const setProfileEditMode = (isEditing) => {
@@ -1687,6 +1697,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (profileEmailInput) {
                     profileEmailInput.value = profileDetails.email;
                 }
+                if (profileSpecialtiesInput) {
+                    profileSpecialtiesInput.value = profileDetails.specialties.join(", ");
+                }
             }
         };
 
@@ -1704,12 +1717,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 .map((part) => part[0].toUpperCase())
                 .join("");
         });
-
-        if (specialtyList) {
-            specialtyList.innerHTML = user.specialties
-                .map((specialty) => `<span class="tag-pill">${specialty}</span>`)
-                .join("");
-        }
 
         let profileImageUrl = user.profileImage || "";
 
@@ -1816,6 +1823,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             const nextSocial = profileSocialInput?.value.trim() ?? profileDetails.social;
             const nextPortfolio = profilePortfolioInput?.value.trim() ?? profileDetails.portfolio;
             const nextEmail = profileEmailInput?.value.trim().toLowerCase() ?? profileDetails.email;
+            const nextSpecialties = (profileSpecialtiesInput?.value || "")
+                .split(",")
+                .map((specialty) => specialty.trim())
+                .filter(Boolean);
             const saveButton = profileInlineEditForm.querySelector('button[type="submit"]');
             const previousSaveText = saveButton?.textContent || "Save Profile";
 
@@ -1834,7 +1845,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                         bio: nextBio,
                         social: nextSocial,
                         portfolio: nextPortfolio,
-                        email: nextEmail
+                        email: nextEmail,
+                        specialties: nextSpecialties
                     })
                 });
 
@@ -1842,6 +1854,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 profileDetails.social = saveData.user.social ?? nextSocial;
                 profileDetails.portfolio = saveData.user.portfolio ?? nextPortfolio;
                 profileDetails.email = saveData.user.contactEmail ?? nextEmail;
+                profileDetails.specialties = Array.isArray(saveData.user.specialties)
+                    ? saveData.user.specialties
+                    : nextSpecialties;
                 currentUser = saveData.user;
                 signedInUser = saveData.user;
                 saveCurrentUser(saveData.user);

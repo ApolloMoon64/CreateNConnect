@@ -1950,7 +1950,7 @@ async function handleRequest(req, res) {
 
         if (req.method === "PUT" && pathname.startsWith("/api/users/")) {
             const userId = pathname.split("/").pop();
-            const { bio, social, portfolio, email, profileImage } = await readBody(req);
+            const { bio, social, portfolio, email, profileImage, specialties } = await readBody(req);
             const authUser = await requireResourceOwner(req, res, userId);
 
             if (!authUser) {
@@ -1969,12 +1969,20 @@ async function handleRequest(req, res) {
                 return;
             }
 
+            const nextSpecialties = Array.isArray(specialties)
+                ? specialties
+                    .map((specialty) => String(specialty || "").trim())
+                    .filter(Boolean)
+                    .slice(0, 8)
+                : existingUser.specialties;
+
             const user = await updateUserProfile(userId, {
                 bio: bio === undefined ? existingUser.bio : String(bio).trim(),
                 social: social === undefined ? existingUser.social : String(social).trim(),
                 portfolio: portfolio === undefined ? existingUser.portfolio : String(portfolio).trim(),
                 contactEmail: nextContactEmail,
-                profileImage: profileImage === undefined ? existingUser.profileImage : String(profileImage || "").trim()
+                profileImage: profileImage === undefined ? existingUser.profileImage : String(profileImage || "").trim(),
+                specialties: nextSpecialties.length ? nextSpecialties : ["Artwork"]
             });
 
             sendJSON(res, 200, { user: sanitizeUser(user, { includeProfileImage: true }) });

@@ -845,12 +845,12 @@ async function searchUsersByName(query, { excludeUserId = null, limit = 8 } = {}
     return rows.map(mapFollowUser);
 }
 
-async function updateUserProfile(id, { bio, social, portfolio, contactEmail, profileImage }) {
+async function updateUserProfile(id, { bio, social, portfolio, contactEmail, profileImage, specialties }) {
     await pool.query(
         `UPDATE users
-         SET bio = ?, social_handle = ?, portfolio_label = ?, contact_email = ?, profile_image = ?
+         SET bio = ?, social_handle = ?, portfolio_label = ?, contact_email = ?, profile_image = ?, specialties = ?
          WHERE id = ?`,
-        [bio, social, portfolio, contactEmail, profileImage, id]
+        [bio, social, portfolio, contactEmail, profileImage, JSON.stringify(specialties), id]
     );
 
     return getUserById(id);
