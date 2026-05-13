@@ -690,8 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesLink.className = 'nav-item';
         messagesLink.innerHTML = '<i class="ph ph-chat-circle-text"></i> Messages';
 
-        const authLink = navLinks.querySelector('a[href="auth.html"]');
-        navLinks.insertBefore(messagesLink, authLink || null);
+        navLinks.appendChild(messagesLink);
         applyAuthNavigationState();
     }
 
